@@ -1,0 +1,4 @@
+# Created at run time - never commit reports, plans or logs (they contain mailbox names and e-mail addresses)
+reports/
+logs/
+*.zip

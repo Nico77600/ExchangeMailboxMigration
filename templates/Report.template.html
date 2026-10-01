@@ -1,0 +1,513 @@
+<!doctype html>
+<!--
+    Exchange Mailbox Migration - HTML report template
+    Author  : Nicolas Fabert
+    Version : 2.0.0
+    New-EmmReport (ExchangeMailboxMigration.psm1) copies this file and replaces the marker DATA
+    (two percent signs on each side, in the script element "report-data" near the end) with the
+    data of the execution as JSON:
+        { "kind": "Inventory | Plan | Status | Start | Complete | Cleanup",
+          "meta": { ... },
+          "tables": { name: { "columns": [...], "rows": [[...], ...] } } }
+    Everything else is static: edit texts, colours or columns here, no rebuild needed.
+    The page uses no external resource: it works from a mail attachment or a file share.
+-->
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exchange Mailbox Migration</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme = param === "light" || param === "dark" ? param : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --cp-bg: #f7f4ef; --cp-bg-elevated: #fcfbf8; --cp-surface: #ffffff; --cp-surface-soft: #f5f5f5;
+  --cp-border: #dedede; --cp-border-strong: #919191; --cp-text: #242424; --cp-text-muted: #5c5c5c; --cp-text-soft: #6f6f6f;
+  --cp-accent: #b11f4b; --cp-accent-hover: #9a1a41; --cp-accent-soft: rgba(177, 31, 75, 0.08); --cp-accent-fg: #ffffff;
+  --cp-success: #16a34a; --cp-danger: #dc2626; --cp-warning: #f59e0b; --cp-link: #0078d4;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12); --cp-overlay: rgba(255, 255, 255, 0.8);
+  --cp-highlight: rgba(177, 31, 75, 0.12);
+  --t-green: #15803d; --t-green-bg: rgba(22, 163, 74, 0.12); --t-violet: #6d28d9; --t-violet-bg: rgba(109, 40, 217, 0.11);
+  --t-blue: #1d4ed8; --t-blue-bg: rgba(37, 99, 235, 0.11); --t-red: #b91c1c; --t-red-bg: rgba(220, 38, 38, 0.11);
+  --t-amber: #a16207; --t-amber-bg: rgba(245, 158, 11, 0.16); --t-teal: #0f766e; --t-teal-bg: rgba(13, 148, 136, 0.12);
+  --t-gray: #525252; --t-gray-bg: rgba(115, 115, 115, 0.12);
+  --bar-green: #16a34a; --bar-violet: #7c3aed; --bar-blue: #2563eb; --bar-red: #dc2626; --bar-amber: #f59e0b; --bar-gray: #a3a3a3;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #3d3b3a; --cp-bg-elevated: #343231; --cp-surface: #292929; --cp-surface-soft: #2e2e2e;
+  --cp-border: #474747; --cp-border-strong: #5f5f5f; --cp-text: #dedede; --cp-text-muted: #919191; --cp-text-soft: #b0b0b0;
+  --cp-accent: #fd8ea1; --cp-accent-hover: #fb7b91; --cp-accent-soft: rgba(253, 142, 161, 0.14); --cp-accent-fg: #1a1a1a;
+  --cp-success: #4ade80; --cp-danger: #f87171; --cp-warning: #fbbf24; --cp-link: #4da6ff;
+  --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32); --cp-overlay: rgba(41, 41, 41, 0.88);
+  --cp-highlight: rgba(253, 142, 161, 0.12);
+  --t-green: #4ade80; --t-green-bg: rgba(74, 222, 128, 0.14); --t-violet: #c4b5fd; --t-violet-bg: rgba(167, 139, 250, 0.16);
+  --t-blue: #93c5fd; --t-blue-bg: rgba(96, 165, 250, 0.16); --t-red: #fca5a5; --t-red-bg: rgba(248, 113, 113, 0.16);
+  --t-amber: #fcd34d; --t-amber-bg: rgba(251, 191, 36, 0.16); --t-teal: #5eead4; --t-teal-bg: rgba(45, 212, 191, 0.14);
+  --t-gray: #c4c4c4; --t-gray-bg: rgba(160, 160, 160, 0.14);
+  --bar-green: #4ade80; --bar-violet: #a78bfa; --bar-blue: #60a5fa; --bar-red: #f87171; --bar-amber: #fbbf24; --bar-gray: #737373;
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:28px 32px; background:var(--cp-bg); color:var(--cp-text); font:14px "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; }
+h1 { font-size:32px; font-weight:650; letter-spacing:-0.025em; margin:8px 0 12px; }
+h2 { font-size:18px; font-weight:600; margin:0 0 12px; }
+p { line-height:1.5; margin:8px 0; } .muted, small { color:var(--cp-text-muted); }
+header { position:relative; overflow:hidden; border:1px solid var(--cp-border); border-top:4px solid var(--cp-accent); border-radius:16px; padding:24px; margin-bottom:20px; background:linear-gradient(125deg,var(--cp-surface) 35%,var(--cp-accent-soft)); }
+header::before { content:""; position:absolute; width:280px; height:280px; right:-100px; top:-160px; border:40px solid var(--cp-highlight); border-radius:50%; pointer-events:none; }
+.hero-top { position:relative; display:flex; justify-content:space-between; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+#origin { color:var(--cp-accent); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700; }
+.subtitle { color:var(--cp-text-muted); max-width:680px; }
+.run { min-width:300px; padding:12px 16px; border:1px solid var(--cp-border); border-radius:0.625rem; background:var(--cp-surface); }
+.label { font-size:11px; color:var(--cp-accent); font-weight:700; letter-spacing:0.08em; text-transform:uppercase; display:block; margin-bottom:8px; }
+#run-info { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; font-size:12.5px; margin:0; }
+#run-info dt { color:var(--cp-text-muted); } #run-info dd { margin:0; font-variant-numeric:tabular-nums; word-break:break-word; }
+.badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:11.5px; font-weight:600; background:var(--t-violet-bg); color:var(--t-violet); margin-left:8px; vertical-align:middle; letter-spacing:0; }
+.metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin:20px 0 16px; }
+.tile { position:relative; overflow:hidden; padding:18px 20px; border:1px solid var(--cp-border); border-radius:16px; background:var(--cp-surface); transition:transform 160ms ease,border-color 160ms ease; }
+.tile:hover { transform:translateY(-3px); border-color:var(--cp-accent); }
+.tile::after { content:""; position:absolute; width:80px; height:80px; right:-28px; bottom:-32px; border:14px solid var(--cp-highlight); border-radius:50%; pointer-events:none; }
+.tile-primary { background:linear-gradient(125deg,var(--cp-accent-hover),var(--cp-accent)); border-color:var(--cp-accent); color:var(--cp-accent-fg); }
+.tile-tinted { background:linear-gradient(135deg,var(--cp-surface),var(--cp-accent-soft)); }
+.tile-label { display:block; font-size:12px; font-weight:600; margin-bottom:12px; }
+.tile strong { display:block; font-size:32px; font-weight:650; letter-spacing:-0.025em; font-variant-numeric:tabular-nums; }
+.tile small { display:block; margin-top:8px; font-size:11px; } .tile-primary small { color:var(--cp-accent-fg); }
+.tile-icon { position:absolute; top:16px; right:16px; width:20px; height:20px; opacity:0.7; }
+.caption { font-size:12px; color:var(--cp-text-muted); margin:0 0 12px; }
+.distribution { display:grid; grid-template-columns:repeat(var(--bands,4),minmax(0,1fr)); gap:16px; border-top:1px solid var(--cp-border); padding-top:12px; }
+.band-head { display:flex; justify-content:space-between; font-size:11px; gap:8px; color:var(--cp-text-muted); }
+.track { height:5px; border-radius:8px; background:var(--cp-border); margin-top:8px; overflow:hidden; display:flex; }
+.fill { height:100%; width:0; border-radius:8px; background:var(--cp-accent); transition:width 220ms ease; }
+.seg { height:100%; } .seg-Completed { background:var(--bar-green); } .seg-Ready { background:var(--bar-violet); } .seg-InProgress { background:var(--bar-blue); } .seg-Failed { background:var(--bar-red); }
+section.card { background:var(--cp-surface); border:1px solid var(--cp-border); border-radius:16px; padding:20px; margin-bottom:20px; }
+.section-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.notices { display:grid; gap:10px; margin-bottom:20px; }
+.notice { display:flex; gap:12px; align-items:flex-start; border:1px solid var(--cp-border); border-left:4px solid var(--tone); border-radius:12px; padding:12px 16px; background:var(--cp-surface); font-size:13px; line-height:1.5; }
+.notice strong { display:block; margin-bottom:2px; } .notice svg { flex-shrink:0; width:20px; height:20px; color:var(--tone); margin-top:1px; }
+.notice-next { --tone:var(--cp-accent); } .notice-warn { --tone:var(--cp-warning); } .notice-info { --tone:var(--cp-link); }
+code, .mono { font-family:Consolas, "Cascadia Mono", monospace; font-size:12px; }
+.cmd { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px; }
+.cmd code { background:var(--cp-surface-soft); border:1px solid var(--cp-border); border-radius:8px; padding:4px 10px; }
+.batches { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; }
+.batch { position:relative; border:1px solid var(--cp-border); border-radius:14px; padding:14px 16px; background:var(--cp-surface); cursor:pointer; transition:transform 160ms ease,border-color 160ms ease; text-align:left; font:inherit; color:inherit; }
+.batch:hover { transform:translateY(-2px); border-color:var(--cp-accent); }
+.batch.active { border-color:var(--cp-accent); box-shadow:0 0 0 2px var(--cp-accent-soft); }
+.batch-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
+.batch-name { font-weight:650; font-size:15px; }
+.batch-line { font-size:12px; color:var(--cp-text-muted); margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.batch-figures { display:flex; justify-content:space-between; font-size:12.5px; font-variant-numeric:tabular-nums; }
+.batch-next { margin-top:8px; font-size:11.5px; }
+.pill { display:inline-block; padding:1px 9px; border-radius:999px; font-size:11.5px; font-weight:600; white-space:nowrap; background:var(--t-gray-bg); color:var(--t-gray); }
+.tone-accent { background:var(--cp-accent-soft); color:var(--cp-accent); } .tone-green { background:var(--t-green-bg); color:var(--t-green); }
+.tone-violet { background:var(--t-violet-bg); color:var(--t-violet); } .tone-blue { background:var(--t-blue-bg); color:var(--t-blue); }
+.tone-red { background:var(--t-red-bg); color:var(--t-red); } .tone-amber { background:var(--t-amber-bg); color:var(--t-amber); }
+.tone-teal { background:var(--t-teal-bg); color:var(--t-teal); } .tone-gray { background:var(--t-gray-bg); color:var(--t-gray); }
+table.simple { width:100%; border-collapse:collapse; font-size:12.5px; }
+table.simple th { text-align:left; font-size:11.5px; font-weight:600; color:var(--cp-text-muted); background:var(--cp-surface-soft); padding:8px 10px; border-bottom:1px solid var(--cp-border); white-space:nowrap; }
+table.simple td { padding:7px 10px; border-bottom:1px solid var(--cp-border); vertical-align:middle; font-variant-numeric:tabular-nums; }
+table.simple tr:hover td { background:var(--cp-accent-soft); }
+.table-wrap { overflow-x:auto; border:1px solid var(--cp-border); border-radius:0.625rem; }
+.num { text-align:right; font-variant-numeric:tabular-nums; }
+.loadbar { position:relative; height:8px; min-width:120px; border-radius:8px; background:var(--cp-border); overflow:hidden; display:flex; }
+.loadbar .now { background:var(--bar-gray); } .loadbar .add { background:var(--cp-accent); } .loadbar .out { background:var(--bar-amber); }
+input, button, select { font:inherit; color:var(--cp-text); background:var(--cp-surface); border:1px solid var(--cp-border); padding:7px 10px; border-radius:0.625rem; }
+button { cursor:pointer; } button:disabled { color:var(--cp-text-muted); cursor:default; }
+button:not(:disabled):hover, a:hover { color:var(--cp-accent); border-color:var(--cp-accent); }
+.primary-button { background:var(--cp-accent); color:var(--cp-accent-fg); border-color:var(--cp-accent); }
+.primary-button:not(:disabled):hover { background:var(--cp-accent-hover); color:var(--cp-accent-fg); }
+.small-button { padding:3px 9px; font-size:12px; }
+:focus-visible { outline:2px solid var(--cp-accent); outline-offset:2px; }
+a { color:var(--cp-link); } [hidden] { display:none !important; }
+.filters { display:grid; grid-template-columns:repeat(var(--filters,4),minmax(150px,1fr)); gap:12px 16px; margin:12px 0; }
+.filters label { display:flex; flex-direction:column; gap:6px; font-size:12px; font-weight:600; min-width:0; }
+.filters input, .filters select { width:100%; min-width:0; font-weight:400; }
+.controls { display:flex; gap:8px 12px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+#result-state { font-variant-numeric:tabular-nums; }
+.grid { border:1px solid var(--cp-border); border-radius:0.625rem; overflow:hidden; }
+.grid-scroll { overflow-x:auto; }
+.grid-inner { min-width:var(--grid-min,900px); }
+.grid-head, .grid-row { display:grid; grid-template-columns:var(--columns); align-items:center; }
+.grid-head { background:var(--cp-surface-soft); font-weight:600; font-size:12px; border-bottom:1px solid var(--cp-border); }
+.grid-head div, .grid-row div { padding:0 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.grid-head div { padding-top:10px; padding-bottom:10px; cursor:pointer; user-select:none; }
+.grid-head div:hover { color:var(--cp-accent); }
+.grid-head .sorted::after { content:" \25BE"; color:var(--cp-accent); } .grid-head .sorted.asc::after { content:" \25B4"; }
+#viewport { position:relative; overflow-y:auto; height:60vh; min-height:280px; }
+#spacer { position:relative; width:100%; }
+.grid-row { position:absolute; left:0; right:0; height:36px; border-bottom:1px solid var(--cp-border); cursor:pointer; font-size:13px; }
+.grid-row:hover { background:var(--cp-accent-soft); }
+.mini { display:flex; align-items:center; gap:8px; } .mini .track { flex:1; margin:0; height:6px; } .mini span { font-size:11.5px; width:34px; text-align:right; font-variant-numeric:tabular-nums; }
+.flag { display:inline-block; margin-left:6px; padding:0 6px; border-radius:999px; font-size:10.5px; font-weight:700; background:var(--t-amber-bg); color:var(--t-amber); }
+#empty { padding:24px; text-align:center; color:var(--cp-text-muted); }
+dialog { border:1px solid var(--cp-border); border-radius:16px; padding:0; background:var(--cp-surface); color:var(--cp-text); width:min(900px,92vw); box-shadow:var(--cp-shadow); }
+dialog::backdrop { background:rgba(0,0,0,0.35); }
+.dialog-head { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--cp-border); gap:12px; }
+.dialog-body { padding:16px 20px; max-height:70vh; overflow:auto; }
+#detail-fields { display:grid; grid-template-columns:200px 1fr; gap:8px 16px; margin:0; } #detail-fields dt { color:var(--cp-text-muted); } #detail-fields dd { margin:0; word-break:break-word; }
+footer { color:var(--cp-text-muted); font-size:12px; line-height:1.6; }
+@media (max-width: 1000px) { .metrics, .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .distribution { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media print { body { padding:0; background:#fff; } .controls, .filters, #viewport { display:none; } }
+</style></head><body>
+<header><div class="hero-top"><div><span id="origin">Exchange &middot; Mailbox migration</span><h1 id="title">Report</h1>
+<p class="subtitle" id="subtitle"></p></div>
+<div class="run"><span class="label">Execution</span><dl id="run-info"></dl></div></div>
+<div class="metrics" id="metrics"></div>
+<p id="overview-scope" class="caption"></p>
+<div class="distribution" id="distribution" aria-label="Distribution"></div>
+</header>
+<div class="notices" id="notices"></div>
+<section class="card" id="batch-section" hidden><div class="section-head"><h2 id="batch-title">Batches</h2><span class="caption" id="batch-caption"></span></div><div class="batches" id="batches"></div></section>
+<section class="card" id="db-section" hidden><div class="section-head"><h2 id="db-title">Databases</h2><span class="caption" id="db-caption"></span></div><div class="table-wrap"><table class="simple" id="db-table"></table></div></section>
+<section class="card" id="grid-section"><div class="section-head"><h2 id="grid-title">Mailboxes</h2><span class="caption" id="grid-caption"></span></div>
+<div class="filters" id="filters"><label for="search">Search all fields<input id="search" type="search" placeholder="Name, address, database..." autocomplete="off"></label></div>
+<div class="controls"><button id="clear-filters" type="button">Clear filters</button><button id="export" type="button" class="primary-button">Export view to CSV</button>
+<span id="result-state" class="muted" role="status" aria-live="polite"></span></div>
+<div class="grid"><div class="grid-scroll"><div class="grid-inner"><div class="grid-head" id="grid-head" role="row"></div>
+<div id="viewport"><div id="spacer"></div></div></div></div>
+<p id="empty" hidden>No row matches the current filters.</p></div></section>
+<dialog id="detail"><div class="dialog-head"><h2 id="detail-title" style="margin:0">Details</h2><button id="detail-close" type="button">Close</button></div>
+<div class="dialog-body"><dl id="detail-fields"></dl></div></dialog>
+<noscript>JavaScript is required to display this report. Open the CSV files of the same folder for the complete data.</noscript>
+<footer id="footer"></footer>
+<script id="report-data" type="application/json">%%DATA%%</script>
+<script>
+(() => {
+  "use strict";
+  const el = id => document.getElementById(id);
+  const data = JSON.parse(el("report-data").textContent);
+  const meta = data.meta || {}, kind = data.kind;
+  const rowsOf = name => { const t = (data.tables || {})[name]; if (!t) return []; return t.rows.map(r => { const o = {}; t.columns.forEach((c, i) => { o[c] = r[i]; }); return o; }); };
+  const columnsOf = name => ((data.tables || {})[name] || { columns: [] }).columns;
+  const nf = new Intl.NumberFormat("en-GB");
+  const number = n => n == null || n === "" ? "" : nf.format(n);
+  const size = mb => { if (mb == null || mb === "") return ""; mb = Number(mb); return mb >= 1048576 ? (mb / 1048576).toFixed(2) + " TB" : mb >= 1024 ? (mb / 1024).toFixed(1) + " GB" : Math.round(mb) + " MB"; };
+  const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const sum = (rows, k) => rows.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+  const h = (tag, attrs, ...kids) => {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v; else if (k === "style") e.style.cssText = v;
+      else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v);
+    }
+    for (const c of kids.flat()) { if (c == null || c === false || c === "") continue; e.append(c instanceof Node ? c : document.createTextNode(String(c))); }
+    return e;
+  };
+  const ICONS = {
+    mailbox: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 6 9 7 9-7"/>',
+    system: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+    people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5a5 5 0 0 1 5.5 5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+    database: '<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    sync: '<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/>',
+    alert: '<path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17v.5"/>',
+    play: '<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
+    skip: '<path d="m5 5 7 7-7 7M13 5l7 7-7 7"/>',
+    flask: '<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>'
+  };
+  const icon = (name, cls) => { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "1.6"); s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round"); s.setAttribute("aria-hidden", "true"); if (cls) s.setAttribute("class", cls); s.innerHTML = ICONS[name] || ICONS.info; return s; };
+
+  // ---- Status vocabulary --------------------------------------------------------------------------
+  const groupOf = s => /^(Completed|CompletedWithWarning|CompletedWithErrors|Finalized)$/.test(s) ? "Completed"
+    : /^(Synced|AutoSuspended)$/.test(s) ? "Ready"
+    : /^(Failed|Suspended|Stopped|Corrupted|IncrementalSyncFailed|CompletionFailed|SyncFailed)$/.test(s) ? "Failed" : "InProgress";
+  const TONE = { ToMove: "accent", OnTarget: "green", NotSelected: "amber", Outside: "gray", Excluded: "gray",
+    Completed: "green", Ready: "violet", InProgress: "blue", Failed: "red",
+    Success: "green", Simulated: "violet", Skipped: "amber", AlreadyDone: "teal",
+    Source: "accent", Target: "green", ArchiveTarget: "teal", Other: "gray", System: "blue", User: "accent", Monitoring: "gray",
+    Create: "green", Replace: "amber", Skip: "red", Submit: "green" };
+  const LABEL = { ToMove: "To move", OnTarget: "On target", NotSelected: "Not selected", Outside: "Outside the scope", Excluded: "Excluded",
+    Ready: "Ready to complete", InProgress: "In progress", Failed: "Failed / suspended", AlreadyDone: "Already done", ArchiveTarget: "Archive target",
+    PrimaryAndArchive: "Primary + archive", PrimaryOnly: "Primary only", ArchiveOnly: "Archive only", Primary: "Primary" };
+  const toneOf = s => TONE[s] || TONE[groupOf(s)] || "gray";
+  const pill = (s, text) => h("span", { class: "pill tone-" + toneOf(s) }, text || LABEL[s] || s || "");
+  const typeLabel = t => ({ UserMailbox: "User", SharedMailbox: "Shared", RoomMailbox: "Room", EquipmentMailbox: "Equipment", LinkedMailbox: "Linked", LinkedRoomMailbox: "Linked room",
+    PublicFolderMailbox: "Public folder", ArbitrationMailbox: "Arbitration", AuditLogMailbox: "Audit log", AuxAuditLogMailbox: "Aux. audit log", DiscoveryMailbox: "Discovery",
+    MonitoringMailbox: "Monitoring", TeamMailbox: "Team", SchedulingMailbox: "Scheduling" })[t] || t;
+  const progress = (value) => { const v = Math.max(0, Math.min(100, Number(value) || 0)); return h("div", { class: "mini" }, h("div", { class: "track" }, h("div", { class: "fill", style: `width:${v}%` })), h("span", null, v + "%")); };
+  const stacked = (parts) => { const total = parts.reduce((s, p) => s + p.n, 0); return h("div", { class: "track" }, parts.filter(p => p.n).map(p => h("div", { class: "seg seg-" + p.g, style: `width:${total ? p.n * 100 / total : 0}%`, title: `${LABEL[p.g] || p.g}: ${p.n}` }))); };
+  const command = text => h("div", { class: "cmd" }, h("code", null, text), h("button", { type: "button", class: "small-button", onclick: e => { if (navigator.clipboard) navigator.clipboard.writeText(text); e.target.textContent = "Copied"; setTimeout(() => { e.target.textContent = "Copy"; }, 1200); } }, "Copy"));
+  const script = ".\\Invoke-ExchangeMailboxMigration.ps1";
+
+  // ---- Header ------------------------------------------------------------------------------------
+  const TITLES = { Inventory: "Migration inventory", Plan: "Migration plan", Status: "Migration status", Start: "Migration start", Complete: "Batch completion", Cleanup: "Cleanup" };
+  const SUBTITLES = {
+    Inventory: "Every mailbox database and every mailbox of the organisation, and what this selection would move. Nothing was changed.",
+    Plan: "Mailboxes to move, their target databases and their migration batches. Nothing was changed: review the plan, then start it.",
+    Status: "Real state of the migration batches and move requests of this tool. Move requests are the reference; the migration service may show a status a few minutes late.",
+    Start: "Move requests and migration batches submitted from the plan. User batches stop when synchronised: completion is decided with -Mode Complete.",
+    Complete: "Completion of migration batches, now or at a scheduled time.",
+    Cleanup: "Finished migration batches, move requests and migration users of this tool removed. Objects of other tools are never touched."
+  };
+  document.title = `${TITLES[kind] || kind} | Exchange Mailbox Migration`;
+  el("title").textContent = TITLES[kind] || kind;
+  if (meta.simulation) el("title").append(h("span", { class: "badge" }, "Simulation (-WhatIf)"));
+  el("subtitle").textContent = SUBTITLES[kind] + (meta.selection ? ` Selection: ${meta.selection}.` : "");
+  const info = el("run-info");
+  const runLines = [["Generated", meta.generated], ["Mode", [kind, meta.workload ? "workload " + meta.workload : ""].filter(Boolean).join(" \u00b7 ")], ["Organisation", meta.organization],
+    ["Exchange", meta.connection], ["Account", meta.account], ["Plan", meta.planId], ["Batches", meta.batchFilter], ["Duration", meta.duration],
+    ["Refresh", meta.refreshSeconds ? `every ${Math.round(meta.refreshSeconds / 60)} min (automatic)` : ""]];
+  for (const [k, v] of runLines) if (v) info.append(h("dt", null, k), h("dd", null, v));
+
+  // ---- Tables per report kind -----------------------------------------------------------------------
+  const mailboxes = rowsOf("mailboxes"), databases = rowsOf("databases"), batches = rowsOf("batches"), actions = rowsOf("actions");
+
+  // ---- Tiles ------------------------------------------------------------------------------------------
+  const tile = (label, value, small, iconName, style) => h("article", { class: "tile" + (style ? " tile-" + style : "") }, h("span", { class: "tile-label" }, label), icon(iconName, "tile-icon"), h("strong", null, value), h("small", null, small));
+  const metrics = el("metrics");
+  let bands = [], scopeText = "";
+  if (kind === "Inventory") {
+    const move = mailboxes.filter(m => m.Status === "ToMove"), sys = mailboxes.filter(m => m.Category === "System"), usr = mailboxes.filter(m => m.Category === "User"), mon = mailboxes.filter(m => m.Category === "Monitoring");
+    const notMoved = mailboxes.filter(m => ["NotSelected", "Excluded"].includes(m.Status));
+    metrics.append(
+      tile("To move", number(move.length), `${size(sum(move, "MoveSizeMB"))} \u00b7 ${move.filter(m => m.Category === "System").length} system \u00b7 ${move.filter(m => m.Category === "User").length} user`, "mailbox", "primary"),
+      tile("System mailboxes", number(sys.length), `${sys.filter(m => m.Status === "ToMove").length} to move \u00b7 ${sys.filter(m => m.Status === "OnTarget").length} on target`, "system", "tinted"),
+      tile("User mailboxes", number(usr.length), `${usr.filter(m => m.Status === "ToMove").length} to move \u00b7 ${usr.filter(m => m.HasArchive).length} with archive`, "people", "tinted"),
+      tile("Not moved", number(notMoved.length), `${mon.length} monitoring (never moved) \u00b7 ${mailboxes.filter(m => m.Status === "NotSelected").length} not selected`, "lock"));
+    const t = (label, f) => ({ label, n: move.filter(f).length, total: move.length });
+    bands = [t("User", m => m.RecipientTypeDetails === "UserMailbox"), t("Shared", m => m.RecipientTypeDetails === "SharedMailbox"), t("Room / equipment", m => /Room|Equipment/.test(m.RecipientTypeDetails)),
+      t("Archives", m => /Archive/.test(m.MoveType)), t("Public folder", m => m.RecipientTypeDetails === "PublicFolderMailbox"), t("System", m => m.Category === "System")];
+    scopeText = `${number(mailboxes.length)} mailboxes read in ${number(databases.length)} databases. Bars: mailboxes to move by type.`;
+  } else if (kind === "Plan") {
+    const user = mailboxes.filter(m => m.Workload === "User"), sys = mailboxes.filter(m => m.Workload === "System"), ub = batches.filter(b => b.Workload === "User");
+    const targets = databases.filter(d => (d.PlannedPrimaries || 0) + (d.PlannedArchives || 0) > 0);
+    metrics.append(
+      tile("Mailboxes to move", number(mailboxes.length), `${size(sum(mailboxes, "MoveSizeMB"))} \u00b7 ${mailboxes.filter(m => /Archive/.test(m.MoveType)).length} archive(s)`, "mailbox", "primary"),
+      tile("Migration batches", number(ub.length), `${number(user.length)} user mailboxes \u00b7 ${meta.batchStrategy || ""}`, "layers", "tinted"),
+      tile("Target databases", number(targets.length), `${size(sum(targets, "PlannedMB"))} planned`, "database", "tinted"),
+      tile("System mailboxes", number(sys.length), sys.length ? "individual move requests, completed automatically" : "none in this plan", "system"));
+    const t = (label, f) => ({ label, n: mailboxes.filter(f).length, total: mailboxes.length });
+    bands = [t("User", m => m.RecipientTypeDetails === "UserMailbox"), t("Shared", m => m.RecipientTypeDetails === "SharedMailbox"), t("Room / equipment", m => /Room|Equipment/.test(m.RecipientTypeDetails)),
+      t("Archives", m => /Archive/.test(m.MoveType)), t("Public folder", m => m.RecipientTypeDetails === "PublicFolderMailbox"), t("System", m => m.Workload === "System")];
+    scopeText = `Plan ${meta.planId || ""} \u00b7 created ${meta.created || meta.generated}. Bars: mailboxes by type.`;
+  } else if (kind === "Status") {
+    const g = name => mailboxes.filter(m => m.Group === name), all = mailboxes.length, q = mailboxes.filter(m => m.Quarantined).length;
+    const avg = all ? Math.round(sum(mailboxes, "Percent") / all) : 0;
+    metrics.append(
+      tile("Completed", number(g("Completed").length), `${pct(g("Completed").length, all)}% of ${number(all)} \u00b7 ${size(sum(g("Completed"), "SizeMB"))}`, "check", "primary"),
+      tile("Ready to complete", number(g("Ready").length), "synchronised, waiting for -Mode Complete", "clock", "tinted"),
+      tile("In progress", number(g("InProgress").length), `average progress ${avg}%`, "sync", "tinted"),
+      tile("Failed / suspended", number(g("Failed").length), q ? `${q} stalled (StatusDetail)` : "none stalled", "alert"));
+    bands = ["Completed", "Ready", "InProgress", "Failed"].map(name => ({ label: LABEL[name] || name, n: g(name).length, total: all }));
+    scopeText = `${number(batches.length)} batch(es), ${number(all)} mailbox(es) \u00b7 ${size(sum(mailboxes, "TransferredMB"))} transferred.`;
+  } else {
+    const c = s => actions.filter(a => a.Status === s).length, all = actions.length;
+    metrics.append(
+      tile("Succeeded", number(c("Success") + c("AlreadyDone")), c("AlreadyDone") ? `${c("AlreadyDone")} already done` : "actions applied", "check", "primary"),
+      tile("Simulated", number(c("Simulated")), meta.simulation ? "checked by Exchange (-WhatIf), nothing changed" : "none: real execution", "flask", "tinted"),
+      tile("Skipped", number(c("Skipped")), "see the reason of each line", "skip", "tinted"),
+      tile("Failed", number(c("Failed")), c("Failed") ? "see the error of each line" : "no error", "alert"));
+    bands = ["Success", "Simulated", "Skipped", "Failed"].map(s => ({ label: LABEL[s] || s, n: c(s), total: all }));
+    scopeText = `${number(all)} action(s) recorded.`;
+  }
+  el("overview-scope").textContent = scopeText;
+  const dist = el("distribution");
+  dist.style.setProperty("--bands", bands.length || 1);
+  for (const b of bands) {
+    const p = b.total ? b.n / b.total * 100 : 0;
+    dist.append(h("div", null, h("div", { class: "band-head" }, h("span", null, b.label), h("span", null, `${number(b.n)} / ${Math.round(p)}%`)), h("div", { class: "track" }, h("div", { class: "fill", style: `width:${p}%` }))));
+  }
+
+  // ---- Notices: next step and warnings ---------------------------------------------------------------------
+  const notices = el("notices");
+  const notice = (tone, iconName, title, body, cmd) => notices.append(h("div", { class: "notice notice-" + tone }, icon(iconName), h("div", null, h("strong", null, title), body ? h("div", null, body) : null, cmd ? command(cmd) : null)));
+  for (const w of (meta.warnings || [])) notice("warn", "alert", "Attention", w);
+  if (meta.next) notice("next", "arrow", "Next step", meta.nextText || "", meta.next);
+
+  // ---- Batches -----------------------------------------------------------------------------------------------
+  const filterBatch = name => { const sel = el("filter-Batch"); if (!sel) return; sel.value = sel.value === name ? "" : name; applyFilters(); document.querySelectorAll(".batch").forEach(b => b.classList.toggle("active", b.dataset.name === sel.value)); el("grid-section").scrollIntoView({ behavior: "smooth" }); };
+  if (batches.length && (kind === "Plan" || kind === "Status")) {
+    el("batch-section").hidden = false;
+    const maxSize = Math.max(1, ...batches.map(b => Number(b.SizeMB) || 0));
+    el("batch-caption").textContent = kind === "Plan" ? "Click a batch to list its mailboxes. Bar: volume compared with the largest batch." : "Click a batch to list its mailboxes. Bar: mailboxes by state.";
+    for (const b of batches) {
+      const card = h("button", { type: "button", class: "batch", "data-name": b.Name, onclick: () => filterBatch(b.Name) });
+      if (kind === "Plan") {
+        card.append(h("div", { class: "batch-head" }, h("span", { class: "batch-name" }, b.Name), pill(b.Workload)),
+          h("div", { class: "batch-figures" }, h("span", null, `${number(b.Mailboxes)} mailbox(es)`), h("strong", null, size(b.SizeMB))),
+          h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(Number(b.SizeMB) || 0) * 100 / maxSize}%` })),
+          h("div", { class: "batch-line", title: b.Types }, b.Types),
+          h("div", { class: "batch-line", title: `${b.Sources} \u2192 ${b.Targets}` }, `${b.Sources} \u2192 ${b.Targets}`));
+      } else {
+        card.append(h("div", { class: "batch-head" }, h("span", { class: "batch-name" }, b.Name), pill(b.Status === "Move requests" ? "System" : b.Status, b.Status)),
+          h("div", { class: "batch-figures" }, h("span", null, `${number(b.Completed)} / ${number(b.Mailboxes)} completed`), h("strong", null, `${b.Percent}%`)),
+          stacked([{ g: "Completed", n: b.Completed }, { g: "Ready", n: b.Ready }, { g: "InProgress", n: b.InProgress }, { g: "Failed", n: b.Failed }]),
+          h("div", { class: "batch-line" }, `${size(b.TransferredMB)} of ${size(b.SizeMB)} transferred${b.Quarantined ? ` \u00b7 ${b.Quarantined} stalled` : ""}${b.Failed ? ` \u00b7 ${b.Failed} failed` : ""}`),
+          b.Next ? h("div", { class: "batch-next" }, b.Next.startsWith("-") ? h("code", null, b.Next) : b.Next) : null);
+      }
+      el("batches").append(card);
+    }
+  } else if (batches.length && kind === "Start") {
+    el("batch-section").hidden = false; el("batch-title").textContent = "Batches";
+    el("batch-caption").textContent = "Decision taken for each batch of the plan.";
+    for (const b of batches) {
+      el("batches").append(h("button", { type: "button", class: "batch", "data-name": b.Name, onclick: () => filterBatch(b.Name) },
+        h("div", { class: "batch-head" }, h("span", { class: "batch-name" }, b.Name), pill(b.Action)),
+        h("div", { class: "batch-figures" }, h("span", null, `${number(b.Mailboxes)} planned \u00b7 ${number(b.Submitted)} submitted`), h("strong", null, size(b.SizeMB))),
+        b.Reason ? h("div", { class: "batch-line", title: b.Reason }, b.Reason) : null));
+    }
+  }
+
+  // ---- Databases ---------------------------------------------------------------------------------------------
+  if (databases.length && (kind === "Inventory" || kind === "Plan")) {
+    el("db-section").hidden = false;
+    const tbl = el("db-table");
+    if (kind === "Inventory") {
+      el("db-caption").textContent = "Role: Source = emptied, Target = filled (from the Databases section of the configuration).";
+      tbl.append(h("thead", null, h("tr", null, ["Database", "Role", "Server", "Version", "Mounted", "Size", "Mailboxes", "Archives", "System", "Monitoring", "To move", "Volume to move"].map((t, i) => h("th", { class: i >= 5 ? "num" : null }, t)))));
+      const body = h("tbody");
+      for (const d of databases) body.append(h("tr", null, h("td", null, h("strong", null, d.Name)), h("td", null, pill(d.Role, LABEL[d.Role])), h("td", null, d.Server), h("td", null, d.Version),
+        h("td", null, d.Mounted == null ? "?" : d.Mounted ? "Yes" : pill("Failed", "No")), h("td", { class: "num" }, size(d.SizeMB)), h("td", { class: "num" }, number(d.Mailboxes)), h("td", { class: "num" }, number(d.Archives)),
+        h("td", { class: "num" }, number(d.SystemMailboxes)), h("td", { class: "num" }, number(d.MonitoringMailboxes)), h("td", { class: "num" }, d.ToMove ? number(d.ToMove) : ""), h("td", { class: "num" }, d.ToMove ? size(d.ToMoveMB) : "")));
+      tbl.append(body);
+    } else {
+      el("db-caption").textContent = "Grey: data already in the database \u00b7 accent: planned arrivals \u00b7 amber: planned departures.";
+      const max = Math.max(1, ...databases.map(d => (Number(d.ExistingMB) || 0) + (Number(d.PlannedMB) || 0)));
+      tbl.append(h("thead", null, h("tr", null, ["Database", "Role", "Server", "Existing", "Arrivals", "Archives", "Volume in", "Departures", "Volume out", "Load"].map((t, i) => h("th", { class: i >= 3 && i <= 8 ? "num" : null }, t)))));
+      const body = h("tbody");
+      for (const d of databases) {
+        const now = Number(d.ExistingMB) || 0, add = Number(d.PlannedMB) || 0, out = Number(d.LeavingMB) || 0;
+        body.append(h("tr", null, h("td", null, h("strong", null, d.Name), d.MapTarget ? h("div", { class: "caption", style: "margin:0" }, "mapped to " + d.MapTarget) : null), h("td", null, pill(d.Role, LABEL[d.Role])), h("td", null, d.Server),
+          h("td", { class: "num" }, size(now)), h("td", { class: "num" }, d.PlannedPrimaries ? number(d.PlannedPrimaries) : ""), h("td", { class: "num" }, d.PlannedArchives ? number(d.PlannedArchives) : ""),
+          h("td", { class: "num" }, add ? size(add) : ""), h("td", { class: "num" }, d.LeavingMailboxes ? number(d.LeavingMailboxes) : ""), h("td", { class: "num" }, out ? size(out) : ""),
+          h("td", null, h("div", { class: "loadbar", title: `${size(now)} + ${size(add)}` }, h("div", { class: "now", style: `width:${Math.max(0, now - out) * 100 / max}%` }), h("div", { class: "out", style: `width:${out * 100 / max}%` }), h("div", { class: "add", style: `width:${add * 100 / max}%` })))));
+      }
+      tbl.append(body);
+    }
+  }
+
+  // ---- Grid definition per report kind ----------------------------------------------------------------------
+  const C = (title, width, cell, opts) => Object.assign({ title, width, cell }, opts || {});
+  let gridRows = [], gridTable = "", columns = [], filterKeys = [], gridTitle = "Mailboxes", gridCaption = "", detailTitle = r => r.DisplayName || r.Name || r.Target || "Details";
+  if (kind === "Inventory") {
+    gridRows = mailboxes; gridTable = "mailboxes"; filterKeys = [["Category", "Category"], ["Status", "Status"], ["RecipientTypeDetails", "Type"], ["Database", "Database"]];
+    gridCaption = "Every mailbox read, with the decision of this selection. Click a row for details.";
+    columns = [C("Name", "minmax(170px,1.3fr)", r => r.DisplayName || r.Name, { sort: r => (r.DisplayName || r.Name || "").toLowerCase() }), C("Category", "100px", r => pill(r.Category), { sort: r => r.Category }),
+      C("Type", "110px", r => typeLabel(r.RecipientTypeDetails), { sort: r => r.RecipientTypeDetails }), C("Status", "130px", r => pill(r.Status), { sort: r => r.Status }),
+      C("Move", "130px", r => LABEL[r.MoveType] || r.MoveType || "", { sort: r => r.MoveType }), C("Database", "120px", r => r.Database, { sort: r => r.Database }),
+      C("Archive database", "130px", r => r.ArchiveDatabase || "", { sort: r => r.ArchiveDatabase }), C("Size", "90px", r => r.MoveSizeMB ? size(r.MoveSizeMB) : (r.PrimarySizeMB != null ? size((r.PrimarySizeMB || 0) + (r.ArchiveSizeMB || 0)) : ""), { cls: "num", sort: r => Number(r.MoveSizeMB) || (Number(r.PrimarySizeMB) || 0) + (Number(r.ArchiveSizeMB) || 0) }),
+      C("Reason", "minmax(160px,1.4fr)", r => r.Reason || "", { sort: r => r.Reason })];
+  } else if (kind === "Plan") {
+    gridRows = mailboxes; gridTable = "mailboxes"; filterKeys = [["Batch", "Batch"], ["Workload", "Workload"], ["RecipientTypeDetails", "Type"], ["MoveType", "Move"], ["TargetDatabase", "Target database"]];
+    gridCaption = "One row per mailbox to move. Click a row for details.";
+    columns = [C("Batch", "110px", r => r.Batch, { sort: r => (r.Workload === "System" ? "0" : "1") + r.Batch }), C("Name", "minmax(170px,1.3fr)", r => r.DisplayName || r.Name, { sort: r => (r.DisplayName || "").toLowerCase() }),
+      C("Type", "110px", r => typeLabel(r.RecipientTypeDetails), { sort: r => r.RecipientTypeDetails }), C("Move", "130px", r => LABEL[r.MoveType] || r.MoveType, { sort: r => r.MoveType }),
+      C("Primary", "minmax(150px,1fr)", r => /Primary/.test(r.MoveType) ? `${r.SourceDatabase} \u2192 ${r.TargetDatabase}` : "", { sort: r => r.TargetDatabase }),
+      C("Archive", "minmax(150px,1fr)", r => /Archive/.test(r.MoveType) ? `${r.SourceArchiveDatabase} \u2192 ${r.TargetArchiveDatabase}` : "", { sort: r => r.TargetArchiveDatabase }),
+      C("Size", "90px", r => size(r.MoveSizeMB), { cls: "num", sort: r => Number(r.MoveSizeMB) || 0 }), C("Items", "90px", r => number(r.ItemCount), { cls: "num", sort: r => Number(r.ItemCount) || 0 })];
+  } else if (kind === "Status") {
+    gridRows = mailboxes; gridTable = "mailboxes"; filterKeys = [["Batch", "Batch"], ["Group", "State"], ["Status", "Move status"], ["Quarantined", "Stalled"]];
+    gridCaption = "One row per move request (or migration user without a move request yet). Click a row for the full message.";
+    columns = [C("Batch", "120px", r => r.Batch, { sort: r => r.Batch }), C("Name", "minmax(170px,1.2fr)", r => r.DisplayName || r.Mail || r.Alias, { sort: r => (r.DisplayName || "").toLowerCase() }),
+      C("State", "190px", r => { const d = h("div", null, pill(r.Status || r.Group, r.Status)); if (r.Quarantined) d.append(h("span", { class: "flag", title: r.StatusDetail }, "stalled")); return d; }, { sort: r => r.Group + r.Status }),
+      C("Progress", "150px", r => progress(r.Percent), { sort: r => Number(r.Percent) || 0 }), C("Size", "90px", r => size(r.SizeMB), { cls: "num", sort: r => Number(r.SizeMB) || 0 }),
+      C("Target", "110px", r => r.TargetDatabase, { sort: r => r.TargetDatabase }), C("Last update", "150px", r => r.LastUpdate, { sort: r => r.LastUpdate }),
+      C("Detail", "minmax(180px,1.5fr)", r => r.Message || r.StatusDetail || "", { sort: r => r.Message })];
+    detailTitle = r => r.DisplayName || r.Mail || "Move request";
+  } else {
+    gridRows = actions; gridTable = "actions"; gridTitle = "Actions"; filterKeys = [["Status", "Status"], ["Batch", "Batch"], ["Workload", "Workload"], ["Action", "Action"]];
+    gridCaption = "Every action of the execution, in order. Click a row for details.";
+    columns = [C("Time", "150px", r => r.Time, { sort: r => r.Time }), C("Batch", "120px", r => r.Batch, { sort: r => r.Batch }), C("Target", "minmax(170px,1.2fr)", r => r.Target, { sort: r => (r.Target || "").toLowerCase() }),
+      C("Action", "minmax(170px,1.2fr)", r => r.Action, { sort: r => r.Action }), C("Status", "120px", r => pill(r.Status), { sort: r => r.Status }), C("Detail", "minmax(200px,1.8fr)", r => r.Detail || "", { sort: r => r.Detail })];
+    detailTitle = r => r.Target || "Action";
+  }
+  el("grid-title").textContent = gridTitle; el("grid-caption").textContent = gridCaption;
+  if (kind === "Status") { for (const r of gridRows) r.Quarantined = r.Quarantined ? "Yes" : "No"; }
+
+  // ---- Filters --------------------------------------------------------------------------------------------
+  const filters = el("filters");
+  filters.style.setProperty("--filters", Math.min(5, filterKeys.length + 1));
+  const STORE = "emm-" + kind;
+  for (const [key, label] of filterKeys) {
+    const counts = new Map();
+    for (const r of gridRows) { const v = r[key] == null ? "" : String(r[key]); counts.set(v, (counts.get(v) || 0) + 1); }
+    const select = h("select", { id: "filter-" + key }, h("option", { value: "" }, "All"));
+    for (const v of Array.from(counts.keys()).sort()) select.append(h("option", { value: v }, `${v === "" ? "(empty)" : (key === "RecipientTypeDetails" ? typeLabel(v) : LABEL[v] && key !== "Batch" ? LABEL[v] : v)} (${number(counts.get(v))})`));
+    select.addEventListener("change", applyFilters);
+    filters.append(h("label", { for: "filter-" + key }, label, select));
+  }
+
+  // ---- Grid with virtual scrolling: only the visible rows exist in the page ------------------------------------
+  document.documentElement.style.setProperty("--columns", columns.map(c => c.width).join(" "));
+  let sortIndex = -1, sortAsc = true;
+  columns.forEach((c, i) => {
+    const d = h("div", { class: c.cls || null, role: "columnheader", title: "Sort" }, c.title);
+    d.addEventListener("click", () => { if (sortIndex === i) sortAsc = !sortAsc; else { sortIndex = i; sortAsc = c.cls !== "num"; } el("grid-head").querySelectorAll("div").forEach((x, j) => { x.classList.toggle("sorted", j === sortIndex); x.classList.toggle("asc", j === sortIndex && sortAsc); }); sortView(); render(true); });
+    el("grid-head").append(d);
+  });
+  let view = gridRows.slice();
+  const text = r => Object.values(r).map(v => v == null ? "" : String(v)).join("\u0001").toLowerCase();
+  const haystack = gridRows.map(text);
+  const index = new Map(gridRows.map((r, i) => [r, i]));
+  function applyFilters() {
+    const q = el("search").value.trim().toLowerCase();
+    const active = filterKeys.map(([k]) => [k, el("filter-" + k).value]).filter(([, v]) => v !== "");
+    view = gridRows.filter((r, i) => (!q || haystack[i].includes(q)) && active.every(([k, v]) => String(r[k] == null ? "" : r[k]) === v));
+    try { sessionStorage.setItem(STORE, JSON.stringify({ q: el("search").value, f: Object.fromEntries(filterKeys.map(([k]) => [k, el("filter-" + k).value])) })); } catch (e) { }
+    sortView(); render(true);
+  }
+  function sortView() {
+    if (sortIndex < 0) return;
+    const key = columns[sortIndex].sort || (r => String(columns[sortIndex].cell(r)));
+    view.sort((a, b) => { const x = key(a), y = key(b); const c = typeof x === "number" && typeof y === "number" ? x - y : String(x == null ? "" : x).localeCompare(String(y == null ? "" : y), "en", { numeric: true }); return sortAsc ? c : -c; });
+  }
+  const ROW = 36, viewport = el("viewport"), spacer = el("spacer");
+  function render(reset) {
+    if (reset) viewport.scrollTop = 0;
+    spacer.style.height = `${view.length * ROW}px`;
+    el("empty").hidden = view.length > 0;
+    el("result-state").textContent = view.length === gridRows.length ? `${number(view.length)} rows` : `${number(view.length)} of ${number(gridRows.length)} rows`;
+    const first = Math.max(0, Math.floor(viewport.scrollTop / ROW) - 10);
+    const last = Math.min(view.length, Math.ceil((viewport.scrollTop + viewport.clientHeight) / ROW) + 10);
+    const fragment = document.createDocumentFragment();
+    for (let p = first; p < last; p++) {
+      const r = view[p], line = h("div", { class: "grid-row", role: "row", style: `top:${p * ROW}px`, "data-row": index.get(r), tabindex: "0" });
+      for (const c of columns) { const v = c.cell(r); const cell = h("div", { class: c.cls || null }); if (v instanceof Node) cell.append(v); else { cell.textContent = v == null ? "" : v; cell.title = v == null ? "" : v; } line.append(cell); }
+      fragment.append(line);
+    }
+    spacer.replaceChildren(fragment);
+  }
+  let ticking = false;
+  viewport.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { render(false); ticking = false; }); } });
+  window.addEventListener("resize", () => render(false));
+
+  // ---- Details dialog ----------------------------------------------------------------------------------------
+  function showDetails(i) {
+    const r = gridRows[i], dl = el("detail-fields");
+    el("detail-title").textContent = detailTitle(r);
+    dl.replaceChildren();
+    for (const k of columnsOf(gridTable)) { const v = r[k]; if (v == null || v === "") continue; dl.append(h("dt", null, k), h("dd", null, typeof v === "number" && /MB$/.test(k) ? `${size(v)} (${number(v)} MB)` : String(v))); }
+    el("detail").showModal();
+  }
+  spacer.addEventListener("click", e => { const r = e.target.closest(".grid-row"); if (r) showDetails(Number(r.dataset.row)); });
+  spacer.addEventListener("keydown", e => { if (e.key === "Enter") { const r = e.target.closest(".grid-row"); if (r) showDetails(Number(r.dataset.row)); } });
+  el("detail-close").addEventListener("click", () => el("detail").close());
+
+  // ---- Export of the current view --------------------------------------------------------------------------------
+  el("export").addEventListener("click", () => {
+    const cols = columnsOf(gridTable);
+    const esc = v => { v = v == null ? "" : String(v); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return /[";\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+    const lines = ["\ufeff" + cols.map(esc).join(";")];
+    for (const r of view) lines.push(cols.map(c => esc(r[c])).join(";"));
+    const a = h("a", { href: URL.createObjectURL(new Blob([lines.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" })), download: `${kind.toLowerCase()}-view.csv` });
+    document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  });
+
+  // ---- Wiring, saved filters and automatic refresh ------------------------------------------------------------------
+  let timer = null;
+  el("search").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(applyFilters, 200); });
+  el("clear-filters").addEventListener("click", () => { el("search").value = ""; for (const [k] of filterKeys) el("filter-" + k).value = ""; document.querySelectorAll(".batch").forEach(b => b.classList.remove("active")); applyFilters(); });
+  try { const saved = JSON.parse(sessionStorage.getItem(STORE) || "null"); if (saved && meta.refreshSeconds) { el("search").value = saved.q || ""; for (const [k] of filterKeys) { const s = el("filter-" + k); if (saved.f && saved.f[k] != null && Array.from(s.options).some(o => o.value === saved.f[k])) s.value = saved.f[k]; } } } catch (e) { }
+  if (meta.refreshSeconds > 0) setTimeout(() => window.location.reload(), meta.refreshSeconds * 1000);
+  el("footer").textContent = `Generated ${meta.generated} by ${meta.tool || "Exchange Mailbox Migration"} ${meta.toolVersion || ""} (${meta.author || ""}). Sizes include recoverable items (what a move copies). This report contains mailbox names and e-mail addresses: store and share it accordingly.`;
+  applyFilters();
+})();
+</script>
+</body></html>
