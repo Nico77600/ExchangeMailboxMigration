@@ -34,6 +34,8 @@
 .NOTES
     Author  : Nicolas Fabert
     Version : 2.0.0
+    Run it in Windows PowerShell 5.1, like the tool: -ConfigPath checks the configuration with the module,
+    which refuses PowerShell 7.
 #>
 [CmdletBinding()]
 param(

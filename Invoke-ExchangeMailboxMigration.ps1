@@ -106,6 +106,9 @@
 .NOTES
     Author  : Nicolas Fabert
     Version : 2.0.0
+    Requires : Windows PowerShell 5.1 (Exchange Management Shell, or powershell.exe with remote PowerShell to
+               an Exchange server). PowerShell 7 is not supported by Microsoft for Exchange Server management:
+               the script stops with an explicit message when started in it.
     Exit codes : 0 = success, 1 = failure, 2 = finished with items to look at: Start skipped or failed
                  mailboxes, Complete skipped or failed batches, Status failed moves, Cleanup failed removals
                  (batches kept on purpose are listed but do not change the code), 3 = cancelled at the
@@ -139,6 +142,16 @@ param(
 # switched off for this script, so the report and log files are written in simulation too.
 $simulate = [bool]$WhatIfPreference
 $WhatIfPreference = $false
+# Exchange Server is managed with Windows PowerShell 5.1 only (Exchange Management Shell): PowerShell 7 is not
+# supported by Microsoft for Exchange Server, so the tool refuses it rather than run in an unsupported way.
+if ($PSVersionTable.PSEdition -ne 'Desktop') {
+    Write-Host ''
+    Write-Host '  [ERROR] Exchange Mailbox Migration runs in Windows PowerShell 5.1 only (Exchange Management Shell).' -ForegroundColor Red
+    Write-Host "          PowerShell $($PSVersionTable.PSVersion) is not supported by Microsoft for Exchange Server management." -ForegroundColor Red
+    Write-Host '          Start it with powershell.exe, or from the Exchange Management Shell.' -ForegroundColor Red
+    Write-Host ''
+    exit 1
+}
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
 # Numbers and dates are displayed the same way on every server (1,234.5), whatever the regional settings.

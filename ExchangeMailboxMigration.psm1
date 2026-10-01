@@ -21,7 +21,8 @@
     properties are known. This keeps the code identical with remote PowerShell (deserialized
     objects, sizes as text) and with the local snap-in (live objects).
 
-    Compatible with Windows PowerShell 5.1 (Exchange Management Shell) and PowerShell 7.
+    Windows PowerShell 5.1 only (Exchange Management Shell): PowerShell 7 is not supported by Microsoft
+    for Exchange Server management, and the module refuses to load in it.
     The code is ASCII only: icons and frame characters are built from their code points.
 
 .NOTES
@@ -31,6 +32,9 @@
 #>
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSEdition -ne 'Desktop') {
+    throw "Exchange Mailbox Migration runs in Windows PowerShell 5.1 only (Exchange Management Shell). PowerShell $($PSVersionTable.PSVersion) is not supported by Microsoft for Exchange Server management."
+}
 
 $script:ToolName = 'Exchange Mailbox Migration'
 $script:ToolVersion = '2.0.0'
@@ -46,7 +50,7 @@ $script:Invariant = [Globalization.CultureInfo]::InvariantCulture
 # never moved (they belong to the Managed Availability of each server and are recreated by it).
 $script:SystemTypes = @('ArbitrationMailbox', 'AuditLogMailbox', 'AuxAuditLogMailbox', 'DiscoveryMailbox')
 $script:UserTypes = @('UserMailbox', 'SharedMailbox', 'RoomMailbox', 'EquipmentMailbox', 'LinkedMailbox', 'LinkedRoomMailbox',
-    'TeamMailbox', 'SchedulingMailbox', 'PublicFolderMailbox', 'Archive')
+    'TeamMailbox', 'PublicFolderMailbox', 'Archive')
 # Move request statuses after which a request no longer moves anything.
 $script:FinishedMoveStatuses = @('Completed', 'CompletedWithWarning', 'Failed')
 # Migration batch statuses after which a batch no longer moves anything.
@@ -2081,8 +2085,9 @@ function Add-EmmJsonValue {
 function ConvertTo-EmmJson {
     <#
     .SYNOPSIS
-        JSON text of a value. Same output with Windows PowerShell 5.1 and PowerShell 7 (ConvertTo-Json
-        differs between them: dates, escaping, depth): invariant culture, safe inside <script>.
+        JSON text of a value, built by the tool itself: ConvertTo-Json of Windows PowerShell 5.1 writes dates
+        as \/Date(...)\/, stops at depth 2 and does not escape < > &; here the output is invariant-culture
+        and safe inside <script>.
     #>
     param([AllowNull()]$Value)
     $sb = [System.Text.StringBuilder]::new()

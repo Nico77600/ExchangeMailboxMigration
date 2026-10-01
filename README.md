@@ -28,7 +28,7 @@ Inventory ──► Plan ──► Start ──► Status ──► Complete ─
 | Item | Requirement |
 |---|---|
 | Exchange | Exchange Server 2019 / Subscription Edition (2016 works: same cmdlets), moves inside one organisation |
-| PowerShell | Windows PowerShell 5.1 (Exchange Management Shell) or PowerShell 7 |
+| PowerShell | **Windows PowerShell 5.1 only** (Exchange Management Shell, or `powershell.exe`). PowerShell 7 is not supported by Microsoft for Exchange Server management: the script refuses it |
 | Permissions | RBAC roles Mail Recipients, Move Mailboxes, Migration, View-Only Configuration (e.g. Organization Management) |
 | Console | Windows Terminal for emoji and colours; the classic console shows symbols |
 
@@ -62,12 +62,12 @@ The **administrator guide** covers the concepts, installation, configuration, ev
 ## Tests
 
 ```powershell
-Invoke-Pester -Path .\tests                               # Pester 5+, no Exchange server needed
-powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1   # whole lifecycle, Windows PowerShell 5.1
-pwsh -NoProfile -File .\tests\Invoke-EndToEnd.ps1             # whole lifecycle, PowerShell 7
+# Windows PowerShell 5.1 (powershell.exe), like the tool; Pester 5+ installed (Windows ships 3.4)
+Invoke-Pester -Path .\tests                               # no Exchange server needed
+powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1   # whole lifecycle with the real script
 ```
 
-The tests run against `tests\FakeExchange.ps1`, a fictitious organisation (contoso.com) with the Exchange cmdlets in memory.
+The tests run against `tests\FakeExchange.ps1`, a fictitious organisation (contoso.com) with the Exchange cmdlets in memory. Only `tools\Build-Documentation.ps1`, which rebuilds the HTML guide on a workstation and never connects to Exchange, needs PowerShell 7.4+.
 
 ## License
 

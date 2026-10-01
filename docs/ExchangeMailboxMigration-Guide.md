@@ -5,7 +5,7 @@ version: 2.0.0
 author: Nicolas Fabert
 updated: 2026-10-01
 logo: mail
-badges: terminal:Windows PowerShell 5.1 and PowerShell 7 | database:Exchange Server 2016 / 2019 / SE | shield:Monitoring mailboxes never moved
+badges: terminal:Windows PowerShell 5.1 only | database:Exchange Server 2016 / 2019 / SE | shield:Monitoring mailboxes never moved
 ---
 
 # Exchange Mailbox Migration — Administrator guide
@@ -22,7 +22,7 @@ file | What it produces | A plan you review before anything happens, and a self-
 ## Quick start
 
 ```steps
-Check the prerequisites | Exchange Management Shell (Windows PowerShell 5.1) or PowerShell 7 on a domain computer, an account with the roles of chapter 5.
+Check the prerequisites | Windows PowerShell 5.1 (the Exchange Management Shell, or `powershell.exe` on a domain computer), an account with the roles of chapter 5.
 Describe your databases | In `config\ExchangeMailboxMigration.config.psd1`, section `Databases`: which databases are emptied, which are filled.
 Look before moving | `.\Invoke-ExchangeMailboxMigration.ps1` — the inventory changes nothing and shows how every database and mailbox is classified.
 Plan, simulate, start | `-Mode Plan`, then `-Mode Start -WhatIf`, then `-Mode Start`. System mailboxes first (`-Workload System`), then users (`-Workload User`).
@@ -99,10 +99,13 @@ The workload comes from the configuration (`Scope.Workload`, default `All`) or f
 | Category | Types (`RecipientTypeDetails`) | Moved by | Completion |
 |---|---|---|---|
 | **System** | `ArbitrationMailbox`, `AuditLogMailbox`, `AuxAuditLogMailbox`, `DiscoveryMailbox` | `New-MoveRequest`, one per mailbox | Automatic |
-| **User** | `UserMailbox`, `SharedMailbox`, `RoomMailbox`, `EquipmentMailbox`, `LinkedMailbox`, `LinkedRoomMailbox` (and `TeamMailbox`, `SchedulingMailbox` if added) | Local migration batch (`New-MigrationBatch -Local`) | `-Mode Complete` |
+| **User** | `UserMailbox`, `SharedMailbox`, `RoomMailbox`, `EquipmentMailbox`, `LinkedMailbox`, `LinkedRoomMailbox` (and `TeamMailbox`, the SharePoint site mailbox, if added) | Local migration batch (`New-MigrationBatch -Local`) | `-Mode Complete` |
 | **Archive** | the archive of a user mailbox (pseudo-type `Archive`) | In the batch of its mailbox (`MailboxType` column of the batch CSV) | `-Mode Complete` |
 | **Public folder** | `PublicFolderMailbox` | `New-MoveRequest -SuspendWhenReadyToComplete`, labelled with its batch name (a local batch cannot hold it) | `-Mode Complete` (resumed with its batch) |
 | **Monitoring** | `MonitoringMailbox` (`HealthMailbox…`) | **Never moved** | — |
+
+> [!NOTE]
+> `SchedulingMailbox` (Microsoft Bookings) and `GroupMailbox` (Microsoft 365 groups) are accepted by `Get-Mailbox -RecipientTypeDetails` on Exchange Server, but they are cloud features with no mailbox to move on premises: the tool does not handle them. `TeamMailbox` (site mailbox, Exchange 2013 or later) still exists on premises, though site mailboxes were retired in Microsoft 365 in 2021: it is listed by the inventory and moved only when added to `Scope.UserMailboxTypes`.
 
 **Archives.** For each mailbox the tool decides what moves:
 
@@ -142,11 +145,11 @@ file | Audit trail | Every change command is written to the log with its paramet
 
 | Item | Requirement |
 |---|---|
-| PowerShell | **Windows PowerShell 5.1** (Exchange Management Shell) or **PowerShell 7** |
+| PowerShell | **Windows PowerShell 5.1 only** (Exchange Management Shell, or `powershell.exe`). PowerShell 7 is not supported by Microsoft for Exchange Server management: the script stops with an explicit message when started in `pwsh` |
 | Where | An Exchange server (recommended: the Exchange Management Shell is there), or a domain computer that can open remote PowerShell to an Exchange server (`http://<server>/PowerShell`, Kerberos) |
 | Modules | None to install: the tool uses the Exchange cmdlets |
 | Console | Any. Colours and emoji in Windows Terminal; symbols from the console fonts in the classic console |
-| To rebuild the guide | PowerShell 7.4+ (`ConvertFrom-Markdown`) — not needed to run the tool |
+| To rebuild the guide | PowerShell 7.4+ (`ConvertFrom-Markdown`), on a workstation — a maintenance tool only, never connected to Exchange, not needed to run the tool |
 
 ### Permissions
 
@@ -495,7 +498,7 @@ chart | Report | HTML + CSV + log
 ## 13. Modifying the tool
 
 > [!IMPORTANT]
-> Code and comments in **English**, ASCII only in the code files (icons and frames are built from their code points: Windows PowerShell 5.1 reads a file without BOM as ANSI). Keep the header block (author, version) of each file. Update `CHANGELOG.md` and the version (Annex D). Run both test suites (chapter 14) in PowerShell 7 **and** Windows PowerShell 5.1.
+> Code and comments in **English**, ASCII only in the code files (icons and frames are built from their code points: Windows PowerShell 5.1 reads a file without BOM as ANSI). Keep the header block (author, version) of each file. Update `CHANGELOG.md` and the version (Annex D). The tool targets **Windows PowerShell 5.1 only** (no PowerShell 7 syntax: no `??`, `?.`, ternary, `ForEach-Object -Parallel`…): run both test suites (chapter 14) in `powershell.exe`.
 
 | I want to… | Where |
 |---|---|
@@ -508,12 +511,12 @@ chart | Report | HTML + CSV + log
 | Change the look of the reports | `templates\Report.template.html` only (no rebuild) |
 | Change the console output | always through `Write-EmmStep`, `Write-EmmItem`, `Write-EmmTable`, `Write-EmmSummary`: they also write the log |
 | Run an Exchange command that changes something | always through `Invoke-EmmChange` (log + `-WhatIf`) and record the result with `Add-EmmAction` |
-| Change this guide | `docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1` (PowerShell 7.4+) |
+| Change this guide | `docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1` (PowerShell 7.4+, workstation only) |
 
 ### PowerShell pitfalls met during the build
 
 > [!CAUTION]
-> **`@()` around a list created with `New-Object` fails** in Windows PowerShell 5.1 and PowerShell 7: `@((New-Object System.Collections.Generic.List[object]))` throws *Argument types do not match* (the list is wrapped in a PSObject). Create lists with `[System.Collections.Generic.List[object]]::new()`.
+> **`@()` around a list created with `New-Object` fails** in Windows PowerShell 5.1: `@((New-Object System.Collections.Generic.List[object]))` throws *Argument types do not match* (the list is wrapped in a PSObject). Create lists with `[System.Collections.Generic.List[object]]::new()`.
 
 > [!CAUTION]
 > **`.Count` under `Set-StrictMode -Version Latest`** throws on `$null` and on a single object (in 5.1 even on a `[pscustomobject]`). A function or an `if` that returns `@(x)` gives back `x` (the array is unrolled): wrap collections with `@( )` **where they are used**, not only where they are built.
@@ -528,15 +531,17 @@ chart | Report | HTML + CSV + log
 ## 14. Testing a change
 
 ```powershell
-# Pester 5+ (PowerShell 7): unit rules and integration on the fictitious organisation
+# In Windows PowerShell 5.1 (powershell.exe), like the tool. Windows ships Pester 3.4: install Pester 5+ once
+Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck
+
+# Pester: unit rules and integration on the fictitious organisation
 Invoke-Pester -Path .\tests\ExchangeMailboxMigration.Tests.ps1 -Output Detailed
 
-# Whole lifecycle with the real entry script, in BOTH PowerShell versions (no Pester needed)
+# Whole lifecycle with the real entry script (no Pester needed)
 powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1
-pwsh -NoProfile -File .\tests\Invoke-EndToEnd.ps1
 ```
 
-**47 Pester tests and 47 end-to-end checks, no Exchange server needed.**
+**48 Pester tests and 47 end-to-end checks, no Exchange server needed.**
 
 ```cards
 settings | Configuration & scope | Validation, all errors at once, workload and types, `Archive`, monitoring refused.
@@ -559,6 +564,7 @@ file | Reports & code | JSON safe in `<script>`, CSV for Excel, every file parse
 
 | Message | Cause and fix |
 |---|---|
+| *Exchange Mailbox Migration runs in Windows PowerShell 5.1 only* | started in PowerShell 7 (`pwsh`), not supported by Microsoft for Exchange Server: run it with `powershell.exe` or in the Exchange Management Shell |
 | *Invalid configuration … - …* | every problem is listed: fix them all in the `.psd1`, run again |
 | *Exchange cmdlets not available to this account: …* | missing RBAC roles (chapter 5); the listed cmdlets tell which |
 | *Cannot open remote PowerShell to …* | server name, Kerberos (run on a domain computer, use the FQDN), WinRM; or run on the Exchange server in the Exchange Management Shell |
@@ -667,7 +673,7 @@ Versions follow MAJOR.MINOR.PATCH: MAJOR for a change of behaviour or of the con
 ```steps
 Version | Same number in `ExchangeMailboxMigration.psd1` (`ModuleVersion`), the headers of the `.psm1`, the script, the configuration, the template, the tools and the guide front matter. A test checks the main ones.
 Changelog | `CHANGELOG.md`: Added / Changed / Fixed, with the reason.
-Tests | Pester (PowerShell 7) and `Invoke-EndToEnd.ps1` in **both** PowerShell versions.
+Tests | Pester and `Invoke-EndToEnd.ps1` in Windows PowerShell 5.1 (`powershell.exe`).
 Guide | `docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1`. Screenshots from the fictitious organisation only.
 Package | `.\tools\New-EmmPackage.ps1`, zip, test on a lab.
 Publish | Commit, tag `vX.Y.Z`, push; GitHub release with the zip of the package.

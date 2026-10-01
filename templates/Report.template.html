@@ -230,7 +230,7 @@ footer { color:var(--cp-text-muted); font-size:12px; line-height:1.6; }
   const pill = (s, text) => h("span", { class: "pill tone-" + toneOf(s) }, text || LABEL[s] || s || "");
   const typeLabel = t => ({ UserMailbox: "User", SharedMailbox: "Shared", RoomMailbox: "Room", EquipmentMailbox: "Equipment", LinkedMailbox: "Linked", LinkedRoomMailbox: "Linked room",
     PublicFolderMailbox: "Public folder", ArbitrationMailbox: "Arbitration", AuditLogMailbox: "Audit log", AuxAuditLogMailbox: "Aux. audit log", DiscoveryMailbox: "Discovery",
-    MonitoringMailbox: "Monitoring", TeamMailbox: "Team", SchedulingMailbox: "Scheduling" })[t] || t;
+    MonitoringMailbox: "Monitoring", TeamMailbox: "Site mailbox" })[t] || t;
   const progress = (value) => { const v = Math.max(0, Math.min(100, Number(value) || 0)); return h("div", { class: "mini" }, h("div", { class: "track" }, h("div", { class: "fill", style: `width:${v}%` })), h("span", null, v + "%")); };
   const stacked = (parts) => { const total = parts.reduce((s, p) => s + p.n, 0); return h("div", { class: "track" }, parts.filter(p => p.n).map(p => h("div", { class: "seg seg-" + p.g, style: `width:${total ? p.n * 100 / total : 0}%`, title: `${LABEL[p.g] || p.g}: ${p.n}` }))); };
   const command = text => h("div", { class: "cmd" }, h("code", null, text), h("button", { type: "button", class: "small-button", onclick: e => { if (navigator.clipboard) navigator.clipboard.writeText(text); e.target.textContent = "Copied"; setTimeout(() => { e.target.textContent = "Copy"; }, 1200); } }, "Copy"));

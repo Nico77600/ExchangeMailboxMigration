@@ -25,6 +25,9 @@
     Section icons: put <!-- icon: name --> on the line before a "## " heading. Available names
     are the keys of $Icons below; add an SVG path there to add an icon.
 
+    Maintenance tool for a workstation: it needs PowerShell 7.4+ (ConvertFrom-Markdown) and never
+    connects to Exchange. The migration tool itself runs in Windows PowerShell 5.1 only.
+
 .NOTES
     Author  : Nicolas Fabert
     Version : 2.0.0

@@ -10,7 +10,8 @@
     and checks the exit codes and the key rules (monitoring never moved, no wipe of other move requests,
     Synced batches with pending moves never removed...).
 
-    Needs no Pester: it runs in Windows PowerShell 5.1 (the Exchange Management Shell) as in PowerShell 7.
+    Needs no Pester. Windows PowerShell 5.1 only, like the tool itself (PowerShell 7 is not supported by
+    Microsoft for Exchange Server management, and the entry script refuses it).
     It also produces the sample reports used for the screenshots of the guide (-OutputPath, -KeepOutput).
 
 .PARAMETER OutputPath
@@ -18,7 +19,7 @@
 
 .EXAMPLE
     powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1
-    pwsh -NoProfile -File .\tests\Invoke-EndToEnd.ps1 -OutputPath C:\Temp\emm-demo -KeepOutput
+    powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1 -OutputPath C:\Temp\emm-demo -KeepOutput
 
 .NOTES
     Author  : Nicolas Fabert
@@ -29,6 +30,7 @@
 param([string]$OutputPath, [switch]$KeepOutput, [switch]$ShowOutput)
 
 $ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'The end-to-end tests run in Windows PowerShell 5.1 only (powershell.exe), like the tool.' }
 $root = Split-Path $PSScriptRoot -Parent
 $entry = Join-Path $root 'Invoke-ExchangeMailboxMigration.ps1'
 . (Join-Path $PSScriptRoot 'FakeExchange.ps1')

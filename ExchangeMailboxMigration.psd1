@@ -13,6 +13,8 @@
     Author            = 'Nicolas Fabert'
     Description       = 'Exchange Mailbox Migration: moves Exchange Server mailboxes from source to target databases with migration batches - system and user mailboxes kept apart, monitoring mailboxes never moved - with HTML/CSV reports.'
     PowerShellVersion = '5.1'
+    # Windows PowerShell only: PowerShell 7 is not supported by Microsoft for Exchange Server management.
+    CompatiblePSEditions = @('Desktop')
 
     # Functions called by Invoke-ExchangeMailboxMigration.ps1 and by the tests. The other functions stay
     # internal to the module: add a function here only when the script or a test calls it.

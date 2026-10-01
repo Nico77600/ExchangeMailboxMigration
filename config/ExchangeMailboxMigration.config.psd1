@@ -72,6 +72,8 @@
         SystemMailboxTypes = @('ArbitrationMailbox', 'AuditLogMailbox', 'AuxAuditLogMailbox', 'DiscoveryMailbox')
         # 'Archive' = the archive mailboxes of the selected types (moved with their primary
         # mailbox, or alone when only the archive is on a source database).
+        # 'TeamMailbox' (SharePoint site mailbox, Exchange 2013 or later) can be added; it is
+        # listed in the inventory as not selected otherwise.
         UserMailboxTypes   = @('UserMailbox', 'SharedMailbox', 'RoomMailbox', 'EquipmentMailbox',
                                'LinkedMailbox', 'LinkedRoomMailbox', 'PublicFolderMailbox', 'Archive')
         # Mailboxes never moved (alias, primary SMTP address, name or GUID).

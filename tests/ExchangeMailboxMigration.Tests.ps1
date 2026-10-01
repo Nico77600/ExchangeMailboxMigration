@@ -1,15 +1,18 @@
 #Requires -Version 5.1
+#Requires -PSEdition Desktop
 #Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' }
 <#
     Exchange Mailbox Migration - automated tests (Pester 5 or later).
     Author  : Nicolas Fabert
     Version : 2.0.0
 
-    Run:  Invoke-Pester -Path .\tests\ExchangeMailboxMigration.Tests.ps1 -Output Detailed
+    Windows PowerShell 5.1 only, like the tool. Windows ships Pester 3.4: install Pester 5+ first
+    (Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck), then, in powershell.exe:
+          Invoke-Pester -Path .\tests\ExchangeMailboxMigration.Tests.ps1 -Output Detailed
 
     No Exchange server is needed: tests\FakeExchange.ps1 provides the Exchange cmdlets over a
-    fictitious in-memory organisation (contoso.com). The whole lifecycle with the real entry script,
-    in Windows PowerShell 5.1 too, is covered by tests\Invoke-EndToEnd.ps1.
+    fictitious in-memory organisation (contoso.com). The whole lifecycle with the real entry script
+    is covered by tests\Invoke-EndToEnd.ps1.
 #>
 
 BeforeAll {
@@ -512,6 +515,14 @@ Describe 'Code' {
         $v = (Import-PowerShellDataFile (Join-Path $script:Root 'ExchangeMailboxMigration.psd1')).ModuleVersion
         foreach ($f in 'ExchangeMailboxMigration.psm1', 'Invoke-ExchangeMailboxMigration.ps1', 'config\ExchangeMailboxMigration.config.psd1', 'templates\Report.template.html') {
             [IO.File]::ReadAllText((Join-Path $script:Root $f)) | Should -BeLike "*Version : $v*" -Because $f
+        }
+    }
+    It 'the tool is declared and guarded for Windows PowerShell 5.1 only' {
+        $manifest = Import-PowerShellDataFile (Join-Path $script:Root 'ExchangeMailboxMigration.psd1')
+        @($manifest.CompatiblePSEditions) | Should -Be @('Desktop')
+        $manifest.PowerShellVersion | Should -Be '5.1'
+        foreach ($f in 'ExchangeMailboxMigration.psm1', 'Invoke-ExchangeMailboxMigration.ps1', 'tests\Invoke-EndToEnd.ps1') {
+            [IO.File]::ReadAllText((Join-Path $script:Root $f)) | Should -Match "PSEdition -ne 'Desktop'" -Because $f
         }
     }
 }
