@@ -417,6 +417,57 @@ Describe 'Ownership and naming' {
     }
 }
 
+Describe 'On-premises scheduled completion and moving a mailbox again' {
+    BeforeAll {
+        New-EmmFakeOrg -Small
+        foreach ($m in $global:EmmFake.Mailboxes) { $m.FailMove = $false }
+        $script:S = New-TestSettings ([ordered]@{ "(?m)^(\s*BatchCount\s*=\s*)\d+" = '${1}2' })
+        $script:Scope = Resolve-EmmScope -Settings $script:S -Workload User
+        $inv = Get-TestInventory $script:S $script:Scope
+        $plan = New-EmmPlan -Settings $script:S -DatabaseInventory $inv.Databases -Mailbox $inv.Mailboxes -Scope $script:Scope
+        Reset-EmmActions
+        Start-EmmMigration -Settings $script:S -Preflight (Get-EmmStartPreflight -Settings $script:S -Plan $plan -Workload User) 6>$null
+        Step-EmmFakeOrg -Rounds 2
+        Complete-EmmBatch -Settings $script:S -BatchName 'Batch01', 'Batch02' -CompleteAfter (Get-Date).AddHours(2) 6>$null
+        Step-EmmFakeOrg
+    }
+    It 'Cleanup keeps the scheduled batches while their moves wait for the completion time' {
+        $c = Get-EmmCleanupPlan -Settings $script:S
+        $c.Batches.Count | Should -Be 0
+        $c.KeptBatches.Count | Should -Be 2
+    }
+    It 'Cleanup removes them once their moves are completed, although Exchange leaves them Synced' {
+        foreach ($r in $global:EmmFake.MoveRequests) { if ($r.CompleteAfter) { $r.CompleteAfter = (Get-Date).AddMinutes(-1) } }
+        Step-EmmFakeOrg -Rounds 2
+        @($global:EmmFake.Batches | Where-Object { $_.Status -ne 'Synced' }).Count | Should -Be 0
+        @($global:EmmFake.MoveRequests | Where-Object { $_.BatchName -like 'MigrationService:*' -and $_.Status -ne 'Completed' }).Count | Should -Be 0
+        $c = Get-EmmCleanupPlan -Settings $script:S
+        $c.Batches.Count | Should -Be 2
+        $c.Batches[0].Reason | Should -BeLike '*CompleteAfter*'
+    }
+    It 'Start moves a mailbox again without a Cleanup first: earlier batch removed, finished request removed' {
+        $user = @($global:EmmFake.MigrationUsers | Where-Object { $_.BatchId -eq 'Batch02' })[0]
+        $m = @($global:EmmFake.Mailboxes | Where-Object { $_.ExchangeGuid -eq $user.MailboxGuid })[0]
+        $m.Database = 'DB01'; $m.ArchiveDatabase = ''
+        $s1 = New-TestSettings ([ordered]@{ "(?m)^(\s*BatchCount\s*=\s*)\d+" = '${1}1' })
+        $inv = Get-TestInventory $s1 $script:Scope
+        $plan = New-EmmPlan -Settings $s1 -DatabaseInventory $inv.Databases -Mailbox $inv.Mailboxes -Scope $script:Scope
+        @($plan.Rows | Where-Object { $_.ExchangeGuid -eq $m.ExchangeGuid }).Count | Should -Be 1
+        $pre = Get-EmmStartPreflight -Settings $s1 -Plan $plan -Workload User
+        @($pre.Batches)[0].Action | Should -Be 'Replace'
+        $item = @($pre.Items | Where-Object { $_.Row.ExchangeGuid -eq $m.ExchangeGuid })[0]
+        $item.Decision | Should -Be 'Submit'
+        $item.RemoveMoveRequest | Should -Not -BeNullOrEmpty
+        $item.PreviousBatch | Should -Be 'Batch02'
+        Reset-EmmActions
+        Start-EmmMigration -Settings $s1 -Preflight $pre 6>$null
+        @(Get-EmmActions | Where-Object { $_.Status -eq 'Failed' }).Count | Should -Be 0
+        @($global:EmmFake.Batches | ForEach-Object { $_.Identity }) -join ',' | Should -Be 'Batch01'
+        @($global:EmmFake.Batches[0].Rows | ForEach-Object { $_.EmailAddress }) | Should -Contain $m.PrimarySmtpAddress
+        $global:EmmFake.ContainsKey('LostMoves') | Should -BeFalse
+    }
+}
+
 Describe 'Reports' {
     It 'writes the HTML (marker replaced) and the CSV (BOM, French decimals)' {
         $s = New-TestSettings

@@ -452,8 +452,11 @@ try {
                     $st = $r.Group[0].Status
                     Write-EmmItem $(if ($st -eq 'Failed') { 'Fail' } elseif ($st -eq 'AlreadyDone') { 'Ok' } else { 'Skip' }) ('{0,5} x {1}' -f $r.Count, $r.Name)
                 }
-                $reduced = @($items | Where-Object { $_.Decision -eq 'Submit' -and $_.Reason }).Count
+                $reduced = @($items | Where-Object { $_.Decision -eq 'Submit' -and $_.Reason -like 'Move type reduced*' }).Count
                 if ($reduced) { Write-EmmItem Info ('{0} mailbox(es): move type reduced (one part already moved)' -f $reduced) }
+                foreach ($pb in @($pre.PreviousBatches)) { Write-EmmItem Info ('Earlier batch {0} removed first ({1}): {2} planned mailbox(es) are still its migration users' -f $pb.Name, $pb.Reason, $pb.Mailboxes) -Icon Broom }
+                $orphanUsers = @($items | Where-Object { $_.Decision -eq 'Submit' -and $_.RemoveMigrationUser }).Count
+                if ($orphanUsers) { Write-EmmItem Info ('{0} orphan migration user(s) of earlier batches removed first' -f $orphanUsers) -Icon Broom }
                 foreach ($w in $pre.Warnings) { Write-EmmItem Warn $w }
 
                 $submitItems = @($items | Where-Object { $_.Decision -eq 'Submit' })
@@ -466,7 +469,7 @@ try {
                     Write-EmmItem Warn 'Nothing to submit.'
                     $go = $false
                 } else {
-                    $question = 'Submit {0} mailbox move(s) ({1}): {2} system move request(s) and {3} user mailbox(es) in {4} migration batch(es)?' -f $submitItems.Count, (Format-EmmSize $submitVolume), $sysCount, $userCount, @($pre.Batches | Where-Object { $_.Action -ne 'Skip' }).Count
+                    $question = 'Submit {0} mailbox move(s) ({1}): {2} system move request(s) and {3} user mailbox(es) in {4} migration batch(es){5}?' -f $submitItems.Count, (Format-EmmSize $submitVolume), $sysCount, $userCount, @($pre.Batches | Where-Object { $_.Action -ne 'Skip' }).Count, $(if (@($pre.PreviousBatches).Count) { ', after removing {0} finished earlier batch(es)' -f @($pre.PreviousBatches).Count } else { '' })
                     Write-EmmItem Info $question -Icon Next
                     $go = Confirm-Change $question
                     if (-not $go) {

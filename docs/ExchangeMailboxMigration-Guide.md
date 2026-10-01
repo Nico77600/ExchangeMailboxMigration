@@ -337,12 +337,14 @@ The **pre-flight** compares the plan with the organisation now and decides per m
 | Pre-flight result | Meaning |
 |---|---|
 | *Create* | the batch is created |
-| *Replace* | a finished batch with the same name exists: it is removed first |
-| *Skip* (batch) | an active batch with the same name exists: follow it, or use another prefix |
+| *Replace* | a batch of the tool with the same name exists and all its moves are finished (Completed, or *Synced* after `-CompleteAfter`): it is removed first |
+| *Skip* (batch) | a batch with the same name exists and is not finished: follow it, or use another prefix |
 | *A batch named X exists and does not belong to this tool* | never removed: use another `Plan.BatchNamePrefix` and create a new plan |
 | *Move request in progress* | the mailbox is skipped (another move is running) |
 | *Finished move request (…) not removed by the tool* | a completed or failed request of another origin blocks the mailbox: remove it (`Remove-MoveRequest`) or set `Move.ReplaceFinishedMoveRequests = 'All'` |
-| *Already a migration user of the batch X* | the mailbox is skipped (run Cleanup, or remove it) |
+| *Earlier batch X removed first* | the mailbox is still a migration user of an earlier batch of the tool whose moves are all finished (typically a batch left *Synced* after `-CompleteAfter`): Start removes it before creating the new one — same rule as Cleanup, no Cleanup needed |
+| *Still a migration user of the batch X (… not finished)* | the earlier batch still has moves to finish (for example a completion scheduled for tonight): the mailbox is skipped, nothing is cancelled |
+| *Orphan migration user of X removed first* | a migration user left by a removed batch of the tool is removed before the new batch is created |
 | *Moved since the plan* | the mailbox is skipped: create a new plan |
 | *Move type reduced* | one part (primary or archive) was already moved: only the other part moves |
 | *Target database not available* | failed: the target is missing, dismounted or no longer a target |
@@ -387,7 +389,7 @@ The **pre-flight** compares the plan with the organisation now and decides per m
 .\Invoke-ExchangeMailboxMigration.ps1 -Mode Cleanup
 ```
 
-Removes, for this tool only: completed batches, completed move requests, migration users left without their batch (only those of the batches of this tool, and of the selected batches with `-Batch`). **Kept**: any batch with a move not finished (public folder moves included), and batches holding failed moves (`-IncludeFailed` removes them once the failures are understood).
+You do not need it before moving a mailbox again: Start frees the planned mailboxes itself, with the same rules. Removes, for this tool only: completed batches (and batches left *Synced* after `-CompleteAfter` once all their moves are completed), completed move requests, migration users left without their batch (only those of the batches of this tool, and of the selected batches with `-Batch`). **Kept**: any batch with a move not finished (public folder moves included), and batches holding failed moves (`-IncludeFailed` removes them once the failures are understood).
 
 ![Console: cleanup](images/console-cleanup.png)
 
@@ -534,7 +536,7 @@ powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1
 pwsh -NoProfile -File .\tests\Invoke-EndToEnd.ps1
 ```
 
-**44 Pester tests and 47 end-to-end checks, no Exchange server needed.**
+**47 Pester tests and 47 end-to-end checks, no Exchange server needed.**
 
 ```cards
 settings | Configuration & scope | Validation, all errors at once, workload and types, `Archive`, monitoring refused.
@@ -572,7 +574,7 @@ file | Reports & code | JSON safe in `<script>`, CSV for Excel, every file parse
 | *The plan is N day(s) old* | create a new plan (recommended) or use `-Force` |
 | *The plan was made with Plan.BatchNamePrefix = …* / *batch name that is not a name of this tool* | the naming changed since the plan, or the plan file was edited: create a new plan (the tool only manages names it recognises) |
 | *Batch X already exists (Syncing)* | it is running: follow it; for a new wave use another `Plan.BatchNamePrefix` |
-| *Already a migration user of the batch X* | a migration user remains from an earlier batch: `-Mode Cleanup` (orphans), or `Remove-MigrationUser` |
+| *Still a migration user of the batch X* | that earlier batch still has moves to finish (scheduled completion, synchronisation): let it finish or complete it, then start again — Start removes it by itself once its moves are finished |
 | *Target database … is not available* | dismounted or renamed since the plan: mount it or create a new plan |
 | A system move is still running after 30 min | it continues in Exchange: follow it with `-Mode Status -Batch System` |
 
@@ -626,12 +628,12 @@ Get-Mailbox -Monitoring -Database DB01 | Disable-Mailbox -Confirm:$false
 
 Batches created by version 1 (`Batch01`…) follow the default prefix: Status, Complete and Cleanup of version 2 recognise them. System move requests of version 1 have no label: version 2 does not see them as its own and never removes them — a mailbox that still has one is skipped by Start until it is removed (or with `Move.ReplaceFinishedMoveRequests = 'All'`).
 
-### Problems fixed
+### What changed in the behaviour
 
 | Version 1 | Version 2 |
 |---|---|
-| Step 20 removed **every move request of the organisation** and every `BatchNN` batch before submitting (moves in progress of other tools included) | Pre-flight per mailbox and per batch; only finished move requests of this tool (configurable) are removed; active batches are skipped |
-| Step 22 removed **Synced** batches (moves not completed) | A Synced batch is removed only when all its moves are completed |
+| Step 20 removed every move request of the organisation and every `BatchNN` batch before submitting, so that mailboxes already moved could be moved again (Exchange refuses a mailbox that still has a move request or is still in a batch) — but also moves in progress and objects of other origins | Same intent, targeted: Start frees only the planned mailboxes — their finished move requests, the finished earlier batch that still holds them, orphan migration users — with the rule of Cleanup; moves in progress and objects of other origins are never touched |
+| Step 22 removed *Synced* batches: needed on-premises, because moves completed with `Set-MoveRequest -CompleteAfter` leave their batch *Synced* for ever — but also before the scheduled time, which cancelled the scheduled completion | Same intent, checked: a *Synced* batch is removed once all its moves are completed, never before |
 | Public folder moves used `New-MoveRequest -PublicFolder` (no such parameter) and were never resumed by step 21 | Plain `New-MoveRequest -SuspendWhenReadyToComplete`, resumed by `-Mode Complete` |
 | Archive-only moves: CSV without `MailboxType` (primary moved too, to a database chosen by Exchange) | `MailboxType` and targets always written; primary-only and archive-only moves |
 | Plan and execution disagreed on archive targets (map ignored for archives at submission) | One target choice, in the plan; the start uses the plan |

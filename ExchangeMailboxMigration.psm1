@@ -1322,9 +1322,14 @@ function Get-EmmStartPreflight {
           - part already moved (primary or archive)                     -> the move type is reduced
           - target database missing, dismounted or no longer a target   -> Failed
           - finished move request (completed / failed)                  -> removed first (Move.ReplaceFinishedMoveRequests)
-          - move request in progress, or user in another batch          -> Skipped
+          - move request in progress                                    -> Skipped
+          - migration user of an earlier batch of the tool              -> that batch removed first when all its moves are
+                                                                           finished (Test-EmmBatchRemovable, the rule of
+                                                                           Cleanup), otherwise Skipped; orphan user removed
+          - migration user of a batch of another origin                 -> Skipped
           - monitoring mailbox                                          -> Failed (never moved)
-        For each user batch: Create, Replace (a finished batch with the same name) or Skip (active batch).
+        For each user batch: Create, Replace (a batch of the tool with the same name whose moves are all finished)
+        or Skip (not finished, or not a batch of the tool).
     #>
     param([Parameter(Mandatory)]$Settings, [Parameter(Mandatory)]$Plan, [Parameter(Mandatory)][ValidateSet('System', 'User', 'All')][string]$Workload)
     # The names of the plan must be names of this tool with the CURRENT configuration, otherwise its batches
@@ -1350,23 +1355,37 @@ function Get-EmmStartPreflight {
     $usersByKey = @{}
     if (@($rows | Where-Object { $_.Workload -eq 'User' }).Count) {
         foreach ($u in @(Get-MigrationUser -ResultSize Unlimited -ErrorAction Stop -WarningAction SilentlyContinue)) {
-            $info = [pscustomobject]@{ Batch = [string](Get-EmmProp $u 'BatchId' ''); Status = [string](Get-EmmProp $u 'Status' '') }
+            $info = [pscustomobject]@{ Identity = [string](Get-EmmProp $u 'Identity' ''); Batch = [string](Get-EmmProp $u 'BatchId' ''); Status = [string](Get-EmmProp $u 'Status' '') }
             $g = ([string](Get-EmmProp $u 'MailboxGuid' '')).ToLowerInvariant()
             if ($g) { $usersByKey[$g] = $info }
             $mail = ([string](Get-EmmProp $u 'MailboxEmailAddress' (Get-EmmProp $u 'Identity' ''))).ToLowerInvariant()
             if ($mail) { $usersByKey[$mail] = $info }
         }
     }
+    # Mailboxes about to be moved again: their failed moves in an earlier batch do not block its removal.
+    $retried = @{}
+    foreach ($r in $rows) { if ($r.ExchangeGuid) { $retried[$r.ExchangeGuid] = $true } }
+    $removable = @{}
+    $batchRemovable = {
+        param([string]$Name)
+        if (-not $removable.ContainsKey($Name)) {
+            $removable[$Name] = Test-EmmBatchRemovable -Batch $batchesByName[$Name] -Moves @($objects.ToolMoves | Where-Object { $_.ToolBatch -eq $Name }) -Settings $Settings -RetriedGuid $retried
+        }
+        return $removable[$Name]
+    }
 
     # ---- Batches ----------------------------------------------------------------------------------------
     $batchDecision = @{}
     foreach ($name in @($rows | Where-Object { $_.Workload -eq 'User' } | ForEach-Object { $_.Batch } | Sort-Object -Unique)) {
         $existing = if ($batchesByName.ContainsKey($name)) { $batchesByName[$name] } else { $null }
+        $test = if ($existing -and $existing.IsTool) { & $batchRemovable $name } else { $null }
         $batchDecision[$name] = if (-not $existing) { [pscustomobject]@{ Name = $name; Action = 'Create'; Existing = ''; Reason = '' } }
             elseif (-not $existing.IsTool) { [pscustomobject]@{ Name = $name; Action = 'Skip'; Existing = $existing.Status; Reason = "A batch named $name exists and does not belong to this tool: it is never removed. Use another Plan.BatchNamePrefix and create a new plan" } }
-            elseif ($existing.Status -in $script:FinishedBatchStatuses) { [pscustomobject]@{ Name = $name; Action = 'Replace'; Existing = $existing.Status; Reason = "Finished batch with the same name ($($existing.Status)) removed first" } }
-            else { [pscustomobject]@{ Name = $name; Action = 'Skip'; Existing = $existing.Status; Reason = "Batch $name already exists ($($existing.Status)): follow it with -Mode Status, or use another Plan.BatchNamePrefix" } }
+            elseif ($test.Removable) { [pscustomobject]@{ Name = $name; Action = 'Replace'; Existing = $existing.Status; Reason = "Earlier batch with the same name removed first ($($test.Reason))" } }
+            else { [pscustomobject]@{ Name = $name; Action = 'Skip'; Existing = $existing.Status; Reason = "Batch $name already exists and is not finished ($($test.Reason)): follow it with -Mode Status, or use another Plan.BatchNamePrefix" } }
     }
+    # Earlier batches of the tool (other names) that still hold planned mailboxes and are removed first.
+    $previous = @{}
 
     # ---- Mailboxes ---------------------------------------------------------------------------------------
     # A primary mailbox goes to a target database; an archive to a target or an archive target database
@@ -1374,7 +1393,7 @@ function Get-EmmStartPreflight {
     $primaryOk = { param($db) $db -and $class.Roles.ContainsKey($db) -and $class.Roles[$db].IsTarget }
     $archiveOk = { param($db) $db -and $class.Roles.ContainsKey($db) -and ($class.Roles[$db].IsArchiveTarget -or (-not $Settings.Databases.ArchiveTargetDatabasePattern -and $class.Roles[$db].IsTarget) -or ($Settings.Databases.DatabaseMap.Values -contains $db)) }
     $items = foreach ($r in $rows) {
-        $decision = 'Submit'; $status = ''; $reason = ''; $removeMove = ''
+        $decision = 'Submit'; $status = ''; $reason = ''; $removeMove = ''; $removeUser = ''; $previousBatch = ''
         $moveType = $r.MoveType
         $cur = $null
         if ($r.ExchangeGuid -and $current.ContainsKey($r.ExchangeGuid)) { $cur = $current[$r.ExchangeGuid] } elseif ($r.Guid -and $current.ContainsKey($r.Guid)) { $cur = $current[$r.Guid] }
@@ -1419,10 +1438,28 @@ function Get-EmmStartPreflight {
                 if ($r.ExchangeGuid -and $usersByKey.ContainsKey($r.ExchangeGuid)) { $mu = $usersByKey[$r.ExchangeGuid] }
                 elseif ($r.PrimarySmtpAddress -and $usersByKey.ContainsKey($r.PrimarySmtpAddress.ToLowerInvariant())) { $mu = $usersByKey[$r.PrimarySmtpAddress.ToLowerInvariant()] }
                 if ($bd.Action -eq 'Skip') { $decision = 'Skip'; $status = 'Skipped'; $reason = $bd.Reason }
-                elseif ($mu -and -not ($mu.Batch -eq $r.Batch -and $bd.Action -eq 'Replace')) { $decision = 'Skip'; $status = 'Skipped'; $reason = "Already a migration user of the batch $($mu.Batch) ($($mu.Status)): run -Mode Cleanup or remove it" }
+                elseif ($mu -and -not ($mu.Batch -eq $r.Batch -and $bd.Action -eq 'Replace')) {
+                    # Exchange refuses a mailbox that is still a migration user of another batch: free it when it is safe.
+                    $old = $mu.Batch
+                    if (-not $old -or -not $batchesByName.ContainsKey($old)) {
+                        if ($old -and (Get-EmmToolBatchName $old $Settings)) { $removeUser = $mu.Identity; $notes += "orphan migration user of $old removed first" }
+                        else { $decision = 'Skip'; $status = 'Skipped'; $reason = "Migration user left by '$(if ($old) { $old } else { 'no batch' })', which is not a batch of this tool: remove it (Remove-MigrationUser), then start again" }
+                    } elseif (-not $batchesByName[$old].IsTool) {
+                        $decision = 'Skip'; $status = 'Skipped'; $reason = "Migration user of the batch $old, which does not belong to this tool: it is never removed"
+                    } else {
+                        $t = & $batchRemovable $old
+                        if ($t.Removable) {
+                            $previousBatch = $old
+                            if (-not $previous.ContainsKey($old)) { $previous[$old] = [pscustomobject]@{ Name = $old; Status = $batchesByName[$old].Status; Reason = $t.Reason; Mailboxes = 0 } }
+                            $previous[$old].Mailboxes++
+                            $notes += "earlier batch $old removed first ($($t.Reason))"
+                        } else { $decision = 'Skip'; $status = 'Skipped'; $reason = "Still a migration user of the batch $old ($($t.Reason)): let it finish or complete it, then start again" }
+                    }
+                }
+                if ($decision -eq 'Submit' -and $notes.Count) { $reason = $(if ($reason) { $reason + '; ' } else { '' }) + (@($notes | Where-Object { $_ -notlike '*already on*' }) -join '; ') }
             }
         }
-        [pscustomobject]@{ Row = $r; Decision = $decision; Status = $status; Reason = $reason; MoveType = $moveType; RemoveMoveRequest = $removeMove }
+        [pscustomobject]@{ Row = $r; Decision = $decision; Status = $status; Reason = $reason.Trim('; '); MoveType = $moveType; RemoveMoveRequest = $removeMove; RemoveMigrationUser = $removeUser; PreviousBatch = $previousBatch }
     }
     $items = @($items)
     if ($Workload -eq 'User') {
@@ -1439,7 +1476,7 @@ function Get-EmmStartPreflight {
         $warnings.Add("Move.LargeItemLimit ($($Settings.Move.LargeItemLimit)) applies to the individual move requests only: Exchange has no large item limit for local migration batches (a user mailbox with a large item fails and is reported).")
     }
     return [pscustomobject]@{
-        Items = $items; Batches = @($batchDecision.Values | Sort-Object Name); Warnings = @($warnings); Workload = $Workload
+        Items = $items; Batches = @($batchDecision.Values | Sort-Object Name); PreviousBatches = @($previous.Values | Sort-Object Name); Warnings = @($warnings); Workload = $Workload
         Submit = @($items | Where-Object { $_.Decision -eq 'Submit' }).Count
         Skip = @($items | Where-Object { $_.Decision -eq 'Skip' }).Count
     }
@@ -1487,6 +1524,34 @@ function Start-EmmMigration {
         }
     }
 
+    # ---- 1b. Earlier batches of the tool that still hold planned mailboxes, and orphan migration users ----------
+    # Exchange refuses a mailbox that is still a migration user of another batch. These batches were checked by
+    # the pre-flight with the same rule as -Mode Cleanup (all their moves finished: nothing is lost).
+    $removedBatches = @{}
+    foreach ($pb in @($Preflight.PSObject.Properties['PreviousBatches'] | ForEach-Object { $_.Value } | Where-Object { $_ })) {
+        $dependents = @($submit | Where-Object { $_.PreviousBatch -eq $pb.Name -and $_.Decision -eq 'Submit' })
+        if (-not $dependents.Count) { continue }
+        try {
+            [void](Invoke-EmmChange -Command 'Remove-MigrationBatch' -Parameters @{ Identity = $pb.Name; Force = $true } -Simulate:$Simulate)
+            $removedBatches[$pb.Name] = $true
+            Add-EmmAction -Workload 'User' -Batch $pb.Name -Target $pb.Name -Action 'Remove-MigrationBatch (earlier batch of planned mailboxes)' -Status $okStatus -Detail ('{0}; {1} planned mailbox(es) in it' -f $pb.Reason, $dependents.Count)
+        } catch {
+            Add-EmmAction -Workload 'User' -Batch $pb.Name -Target $pb.Name -Action 'Remove-MigrationBatch (earlier batch of planned mailboxes)' -Status Failed -Detail $_.Exception.Message
+            foreach ($i in $dependents) { $i.Decision = 'Skip'; Add-EmmAction -Workload 'User' -Batch $i.Row.Batch -Target $i.Row.PrimarySmtpAddress -Action 'Not submitted' -Status Failed -Detail "The earlier batch $($pb.Name) could not be removed" -Quiet }
+        }
+    }
+    # The migration service forgets the users of a removed batch with a delay.
+    if ($removedBatches.Count -and -not $Simulate -and $Settings.Cleanup.SettleSeconds) { Start-Sleep -Seconds $Settings.Cleanup.SettleSeconds }
+    foreach ($i in @($submit | Where-Object { $_.RemoveMigrationUser -and $_.Decision -eq 'Submit' })) {
+        try {
+            [void](Invoke-EmmChange -Command 'Remove-MigrationUser' -Parameters @{ Identity = $i.RemoveMigrationUser } -Simulate:$Simulate)
+            Add-EmmAction -Workload 'User' -Batch $i.Row.Batch -Target $i.Row.PrimarySmtpAddress -Action 'Remove-MigrationUser (orphan of an earlier batch)' -Status $okStatus -Quiet
+        } catch {
+            $i.Decision = 'Skip'
+            Add-EmmAction -Workload 'User' -Batch $i.Row.Batch -Target $i.Row.PrimarySmtpAddress -Action 'Remove-MigrationUser (orphan of an earlier batch)' -Status Failed -Detail $_.Exception.Message
+        }
+    }
+
     # ---- 2. System mailboxes -------------------------------------------------------------------------------
     $systemItems = @($submit | Where-Object { $_.Row.Workload -eq 'System' -and $_.Decision -eq 'Submit' })
     $submittedSystem = 0
@@ -1515,7 +1580,7 @@ function Start-EmmMigration {
         $items = @($submit | Where-Object { $_.Row.Workload -eq 'User' -and $_.Row.Batch -eq $name -and $_.Decision -eq 'Submit' })
         if ($bd.Action -eq 'Skip') { Add-EmmAction -Workload 'User' -Batch $name -Target $name -Action 'New-MigrationBatch' -Status Skipped -Detail $bd.Reason; continue }
         if (-not $items.Count) { Add-EmmAction -Workload 'User' -Batch $name -Target $name -Action 'New-MigrationBatch' -Status Skipped -Detail 'No mailbox left to submit in this batch'; continue }
-        if ($bd.Action -eq 'Replace') {
+        if ($bd.Action -eq 'Replace' -and -not $removedBatches.ContainsKey($name)) {
             try {
                 [void](Invoke-EmmChange -Command 'Remove-MigrationBatch' -Parameters @{ Identity = $name; Force = $true } -Simulate:$Simulate)
                 Add-EmmAction -Workload 'User' -Batch $name -Target $name -Action 'Remove-MigrationBatch (finished batch)' -Status $okStatus -Detail "previous status $($bd.Existing)"
@@ -1541,12 +1606,14 @@ function Start-EmmMigration {
             $p = @{ Name = $name; Local = $true; CSVData = [Text.Encoding]::UTF8.GetBytes(($lines -join "`r`n")); BadItemLimit = $Settings.Move.BadItemLimit }
             if ($Settings.Move.NotificationEmails.Count) { $p['NotificationEmails'] = @($Settings.Move.NotificationEmails) }
             $batchDetail = "{0} mailbox(es), {1}" -f $mailboxItems.Count, $volume
+            # In simulation the batches and users to remove first still exist: Exchange would refuse the creation.
+            $dependsOnRemoval = $bd.Action -eq 'Replace' -or @($mailboxItems | Where-Object { $_.PreviousBatch -or $_.RemoveMigrationUser }).Count -gt 0
             try {
-                if ($Simulate -and $bd.Action -eq 'Replace') {
-                    # The batch to replace still exists (with its migration users) in simulation: Exchange cannot check the
-                    # creation before the removal. The CSV was built from the pre-flight; the removal itself was checked above.
-                    Write-EmmLog 'CHANGE' "[WhatIf] New-MigrationBatch -Name '$name' -Local (not sent: the batch to replace still exists in simulation)"
-                    $batchDetail += ' - creation not checked by Exchange in simulation (the batch to replace still exists)'
+                if ($Simulate -and $dependsOnRemoval) {
+                    # The batch or users to remove first still exist in simulation: Exchange cannot check the creation
+                    # before the removal. The CSV was built from the pre-flight; the removals themselves were checked above.
+                    Write-EmmLog 'CHANGE' "[WhatIf] New-MigrationBatch -Name '$name' -Local (not sent: the batch or users to remove first still exist in simulation)"
+                    $batchDetail += ' - creation not checked by Exchange in simulation (the batch or users to remove first still exist)'
                 } else {
                     [void](Invoke-EmmChange -Command 'New-MigrationBatch' -Parameters $p -Simulate:$Simulate)
                     if (-not $Simulate) { [void](Invoke-EmmChange -Command 'Start-MigrationBatch' -Parameters @{ Identity = $name }) }
@@ -1723,6 +1790,33 @@ function Complete-EmmBatch {
     }
 }
 
+function Test-EmmBatchRemovable {
+    <#
+    .SYNOPSIS
+        Can this batch of the tool be removed without losing anything? One rule for -Mode Cleanup and for
+        -Mode Start (a planned mailbox still held by an earlier batch).
+    .DESCRIPTION
+        Never while one of its moves (public folders included) is not finished: that would cancel synchronised
+        moves, or a completion scheduled with -CompleteAfter.
+        Removable when finished: Completed / CompletedWithErrors, or Synced with every move finished (the
+        on-premises limit: Set-MoveRequest -CompleteAfter completes the moves but the batch stays Synced).
+        Failed moves are kept for analysis, unless Cleanup.IncludeFailed, or unless they are the mailboxes
+        about to be moved again (-RetriedGuid). A Failed / Stopped / Corrupted batch: same condition.
+    #>
+    param([Parameter(Mandatory)]$Batch, [AllowEmptyCollection()][object[]]$Moves = @(), [Parameter(Mandatory)]$Settings, [hashtable]$RetriedGuid = @{})
+    $pending = @($Moves | Where-Object { $_.Status -notin 'Completed', 'CompletedWithWarning', 'Failed' }).Count
+    $failedOther = @($Moves | Where-Object { $_.Status -eq 'Failed' -and -not ($_.ExchangeGuid -and $RetriedGuid.ContainsKey($_.ExchangeGuid)) }).Count
+    $retried = $RetriedGuid.Count -gt 0
+    $no = { param($Text) [pscustomobject]@{ Removable = $false; Reason = $Text } }
+    $yes = { param($Text) [pscustomobject]@{ Removable = $true; Reason = $Text } }
+    if ($pending) { return (& $no ('Status {0}, {1} move request(s) not finished' -f $Batch.Status, $pending)) }
+    if ($failedOther -and -not $Settings.Cleanup.IncludeFailed) { return (& $no ('Status {0}, {1} failed move(s) kept for analysis (Cleanup.IncludeFailed or -IncludeFailed removes them)' -f $Batch.Status, $failedOther)) }
+    if ($Batch.Status -in 'Completed', 'CompletedWithErrors') { return (& $yes $Batch.Status) }
+    if ($Batch.Status -eq 'Synced' -and $Moves.Count) { return (& $yes 'Synced, but all its moves are finished (completion scheduled with -CompleteAfter)') }
+    if ($Batch.Status -in 'Failed', 'Stopped', 'Corrupted' -and ($Settings.Cleanup.IncludeFailed -or $retried)) { return (& $yes $Batch.Status) }
+    return (& $no ('Status {0}' -f $Batch.Status))
+}
+
 function Get-EmmCleanupPlan {
     <#
     .SYNOPSIS
@@ -1741,20 +1835,14 @@ function Get-EmmCleanupPlan {
     param([Parameter(Mandatory)]$Settings, [string[]]$BatchName)
     $objects = Get-EmmMigrationObjects -Settings $Settings
     $selected = if ($BatchName) { @($BatchName) } else { @(Get-EmmManagedName -Objects $objects) }
-    $batchOk = @('Completed', 'CompletedWithErrors'); $moveOk = @('Completed', 'CompletedWithWarning')
-    if ($Settings.Cleanup.IncludeFailed) { $batchOk += @('Failed', 'Stopped', 'Corrupted'); $moveOk += @('Failed') }
+    $moveOk = @('Completed', 'CompletedWithWarning')
+    if ($Settings.Cleanup.IncludeFailed) { $moveOk += @('Failed') }
     $remove = [System.Collections.Generic.List[object]]::new()
     $kept = [System.Collections.Generic.List[object]]::new()
     foreach ($b in @($objects.ToolBatches | Where-Object { $_.Name -in $selected } | Sort-Object Name)) {
         # Every move of the batch: its mailboxes (MigrationService:<name>) and its public folder mailboxes (<name>).
-        $moves = @($objects.ToolMoves | Where-Object { $_.ToolBatch -eq $b.Name })
-        $pending = @($moves | Where-Object { $_.Status -notin 'Completed', 'CompletedWithWarning', 'Failed' }).Count
-        $failed = @($moves | Where-Object { $_.Status -eq 'Failed' }).Count
-        if ($pending) { $kept.Add([pscustomobject]@{ Batch = $b; Reason = ('Status {0}, {1} move request(s) not finished' -f $b.Status, $pending) }) }
-        elseif ($failed -and -not $Settings.Cleanup.IncludeFailed) { $kept.Add([pscustomobject]@{ Batch = $b; Reason = ('Status {0}, {1} failed move(s) kept for analysis (Cleanup.IncludeFailed or -IncludeFailed removes them)' -f $b.Status, $failed) }) }
-        elseif ($b.Status -in $batchOk) { $remove.Add([pscustomobject]@{ Batch = $b; Reason = $b.Status }) }
-        elseif ($b.Status -eq 'Synced' -and $moves.Count) { $remove.Add([pscustomobject]@{ Batch = $b; Reason = 'Synced, but all its moves are finished (scheduled completion)' }) }
-        else { $kept.Add([pscustomobject]@{ Batch = $b; Reason = ('Status {0}' -f $b.Status) }) }
+        $test = Test-EmmBatchRemovable -Batch $b -Moves @($objects.ToolMoves | Where-Object { $_.ToolBatch -eq $b.Name }) -Settings $Settings
+        if ($test.Removable) { $remove.Add([pscustomobject]@{ Batch = $b; Reason = $test.Reason }) } else { $kept.Add([pscustomobject]@{ Batch = $b; Reason = $test.Reason }) }
     }
     return [pscustomobject]@{
         Batches = $remove.ToArray(); KeptBatches = $kept.ToArray()

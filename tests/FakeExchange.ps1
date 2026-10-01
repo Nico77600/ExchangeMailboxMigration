@@ -402,7 +402,9 @@ function global:Step-EmmFakeOrg {
             }
             if (-not $moves.Count) { continue }
             $open = @($moves | Where-Object { $_.Status -notin 'Synced', 'Completed', 'Failed' })
-            if (-not @($moves | Where-Object { $_.Status -ne 'Completed' -and $_.Status -ne 'Failed' }).Count -and $b.Status -in 'Completing', 'Synced' -and @($moves | Where-Object { $_.Status -eq 'Completed' }).Count) { $b.Status = $(if (@($moves | Where-Object { $_.Status -eq 'Failed' }).Count) { 'CompletedWithErrors' } else { 'Completed' }) }
+            # On-premises limit: only Complete-MigrationBatch moves a batch to Completed. Moves completed through
+            # Set-MoveRequest -CompleteAfter leave their batch Synced for ever.
+            if (-not @($moves | Where-Object { $_.Status -ne 'Completed' -and $_.Status -ne 'Failed' }).Count -and $b.Status -eq 'Completing') { $b.Status = $(if (@($moves | Where-Object { $_.Status -eq 'Failed' }).Count) { 'CompletedWithErrors' } else { 'Completed' }) }
             elseif (-not $open.Count -and $b.Status -eq 'Syncing') { $b.Status = 'Synced' }
         }
     }
