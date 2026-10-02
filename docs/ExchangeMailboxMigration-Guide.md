@@ -3,12 +3,14 @@ title: Exchange Mailbox Migration
 subtitle: Administrator guide
 version: 2.0.0
 author: Nicolas Fabert
-updated: 2026-10-01
+updated: 2026-10-02
 logo: mail
 badges: terminal:Windows PowerShell 5.1 only | database:Exchange Server 2016 / 2019 / SE | shield:Monitoring mailboxes never moved
 ---
 
 # Exchange Mailbox Migration — Administrator guide
+
+> Moves the mailboxes of an Exchange Server organisation **from source databases to target databases** with migration batches, **system and user mailboxes kept apart**, monitoring mailboxes never moved, with an HTML and CSV report at every step.
 
 > [!IMPORTANT]
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
@@ -19,9 +21,7 @@ badges: terminal:Windows PowerShell 5.1 only | database:Exchange Server 2016 / 2
 >
 > Replace the example path with the folder where you downloaded or extracted this project.
 >
-> If an `Install-Module` command reports that the module already exists, add `-Force`. If the installed version still conflicts, close PowerShell, run `Uninstall-Module <ModuleName> -AllVersions` if appropriate, then install the required version again.
-
-> Moves the mailboxes of an Exchange Server organisation **from source databases to target databases** with migration batches, **system and user mailboxes kept apart**, monitoring mailboxes never moved, with an HTML and CSV report at every step.
+> The `Install-Module` commands in this documentation use `-Force`, so they also update or reinstall a module that is already installed. If an older version still conflicts, close every PowerShell window, open a new one (as administrator for `-Scope AllUsers`), run `Uninstall-Module <ModuleName> -AllVersions -Force`, then run the `Install-Module` command again.
 
 ```cards
 target | What it does | Empties the databases you name (for example `DB01`…`DB09`, `DBArchives`) into the databases you name (`DB-01`…`DB-12`), balanced by volume and by number.
@@ -194,7 +194,7 @@ The account needs the Exchange RBAC roles:
 
 # On the Exchange server
 Expand-Archive .\ExchangeMailboxMigration-2.0.0.zip -DestinationPath D:\Tools\ExchangeMailboxMigration
-Get-ChildItem D:\Tools\ExchangeMailboxMigration -Recurse | Unblock-File   # files downloaded from the internet
+Get-ChildItem D:\Tools\ExchangeMailboxMigration -Recurse -File -Force | Unblock-File   # files downloaded from the internet
 cd D:\Tools\ExchangeMailboxMigration
 notepad .\config\ExchangeMailboxMigration.config.psd1                   # the Databases section at least
 .\Invoke-ExchangeMailboxMigration.ps1                                  # inventory: changes nothing

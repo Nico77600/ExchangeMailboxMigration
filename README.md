@@ -1,5 +1,7 @@
 # Exchange Mailbox Migration
 
+Moves the mailboxes of an **Exchange Server** organisation from source databases to target databases with migration batches — **system and user mailboxes kept apart**, **monitoring mailboxes never moved** — with an HTML and CSV report at every step.
+
 > [!IMPORTANT]
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
 >
@@ -9,9 +11,7 @@
 >
 > Replace the example path with the folder where you downloaded or extracted this project.
 >
-> If an `Install-Module` command reports that the module already exists, add `-Force`. If the installed version still conflicts, close PowerShell, run `Uninstall-Module <ModuleName> -AllVersions` if appropriate, then install the required version again.
-
-Moves the mailboxes of an **Exchange Server** organisation from source databases to target databases with migration batches — **system and user mailboxes kept apart**, **monitoring mailboxes never moved** — with an HTML and CSV report at every step.
+> The `Install-Module` commands in this documentation use `-Force`, so they also update or reinstall a module that is already installed. If an older version still conflicts, close every PowerShell window, open a new one (as administrator for `-Scope AllUsers`), run `Uninstall-Module <ModuleName> -AllVersions -Force`, then run the `Install-Module` command again.
 
 ![Plan report](docs/images/report-plan.png)
 
