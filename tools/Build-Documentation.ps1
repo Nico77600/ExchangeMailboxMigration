@@ -1,11 +1,12 @@
 ﻿#Requires -Version 7.4
 <#
 .SYNOPSIS
-    Builds package\docs\ExchangeMailboxMigration-Guide.html from package\docs\ExchangeMailboxMigration-Guide.md.
+    Builds the HTML guides (package\docs\ExchangeMailboxMigration-UserGuide.html,
+    package\docs\ExchangeMailboxMigration-Guide.html) from their Markdown source.
 
 .DESCRIPTION
-    The Markdown guide stays readable as plain text (and on GitHub / Azure DevOps). This script
-    turns it into a structured, self-contained HTML page:
+    The Markdown guides stay readable as plain text (and on GitHub / Azure DevOps). This script
+    turns each one into a structured, self-contained HTML page:
 
       - hero header (title, version, author, date) built from the front matter,
       - sticky sidebar with the parts and chapters, highlighting the chapter being read,
@@ -25,8 +26,18 @@
     Section icons: put <!-- icon: name --> on the line before a "## " heading. Available names
     are the keys of $Icons below; add an SVG path there to add an icon.
 
+    A link to the other guide is written with its GitHub anchor
+    (ExchangeMailboxMigration-Guide.md#7-configuration): in the HTML page it points to the HTML file
+    of that guide and to the id of the same heading.
+
     Maintenance tool for a workstation: it needs PowerShell 7.4+ (ConvertFrom-Markdown) and never
     connects to Exchange. The migration tool itself runs in Windows PowerShell 5.1 only.
+
+.PARAMETER Source
+    Markdown guide to build. Default: both guides of package\docs\.
+
+.PARAMETER Destination
+    HTML file to write. Default: the Markdown file name with the .html extension.
 
 .NOTES
     Author  : Nicolas Fabert
@@ -36,11 +47,18 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Source = (Join-Path $PSScriptRoot '..\package\docs\ExchangeMailboxMigration-Guide.md'),
-    [string]$Destination = (Join-Path $PSScriptRoot '..\package\docs\ExchangeMailboxMigration-Guide.html')
+    [string]$Source,
+    [string]$Destination
 )
 $ErrorActionPreference = 'Stop'
+if (-not $Source) {
+    foreach ($name in 'ExchangeMailboxMigration-UserGuide', 'ExchangeMailboxMigration-Guide') {
+        & $PSCommandPath -Source (Join-Path $PSScriptRoot "..\package\docs\$name.md")
+    }
+    return
+}
 $Source = (Resolve-Path $Source).Path
+if (-not $Destination) { $Destination = [IO.Path]::ChangeExtension($Source, '.html') }
 $Destination = [IO.Path]::GetFullPath($Destination)
 $docs = Split-Path $Source -Parent
 $enc = { param($t) [System.Net.WebUtility]::HtmlEncode($t) }
@@ -70,6 +88,7 @@ $Icons = @{
     refresh   = '<path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/>'
     people    = '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5a5 5 0 0 1 5.5 5"/>'
     key       = '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/>'
+    lock      = '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/>'
     shield    = '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>'
     info      = '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'
     search    = '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>'
@@ -155,6 +174,13 @@ $html = [regex]::Replace($html, '<p><img src="([^"]+)" alt="([^"]*)" /></p>', {
         "<figure><img loading=""lazy"" src=""$src"" alt=""$($m.Groups[2].Value)"" title=""Click to enlarge""><figcaption>$($m.Groups[2].Value)</figcaption></figure>"
     })
 $html = $html -replace '<a href="(https?://[^"]+)"', '<a href="$1" target="_blank" rel="noopener"'
+# Link to the other guide: its HTML file, and the id given to the heading here (GitHub anchors keep the
+# chapter number and turn " — " into "--"; the ids of this page do not).
+$html = [regex]::Replace($html, '<a href="([\w.-]+)\.md(?:#([^"]*))?"', {
+        param($m)
+        $anchor = ($m.Groups[2].Value -replace '^\d+-', '' -replace '-{2,}', '-')
+        '<a href="' + $m.Groups[1].Value + '.html' + $(if ($anchor) { '#' + $anchor } else { '' }) + '"'
+    })
 $html = $html -replace '<p class="markdown-alert-title"><svg viewBox="0 0 16 16"', '<p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor"'
 
 # ---- Parts and chapters ------------------------------------------------------------------------------------

@@ -5,10 +5,11 @@
     and copied to an Exchange server.
 
 .DESCRIPTION
-    The package contains only what Invoke-ExchangeMailboxMigration.ps1 needs at run time, plus the HTML guide:
+    The package contains only what Invoke-ExchangeMailboxMigration.ps1 needs at run time, plus the HTML guides:
         package\Invoke-ExchangeMailboxMigration.ps1, package\ExchangeMailboxMigration.psd1, package\ExchangeMailboxMigration.psm1,
-        package\config\, package\templates\, package\docs\ExchangeMailboxMigration-Guide.html, package\README.md, CHANGELOG.md, package\LICENSE
-    It never copies reports\, logs\ or tests\.
+        package\config\, package\templates\, package\docs\ExchangeMailboxMigration-UserGuide.html,
+        package\docs\ExchangeMailboxMigration-Guide.html, package\README.md, CHANGELOG.md, package\LICENSE
+    It never copies reports\, logs\, tests\ or the images of the documentation.
 
     -ConfigPath replaces the delivered configuration file by the configuration of an organisation (for
     example a copy kept outside the repository), so the package is ready for that organisation.
@@ -65,7 +66,8 @@ if (Test-Path -LiteralPath $Destination) {
 
 # ---- Files needed at run time ---------------------------------------------------------------------------
 $files = 'Invoke-ExchangeMailboxMigration.ps1', 'ExchangeMailboxMigration.psd1', 'ExchangeMailboxMigration.psm1', 'templates\Report.template.html',
-    'config\ExchangeMailboxMigration.config.psd1', 'docs\ExchangeMailboxMigration-Guide.html', 'README.md', '..\CHANGELOG.md', 'LICENSE'
+    'config\ExchangeMailboxMigration.config.psd1', 'docs\ExchangeMailboxMigration-UserGuide.html', 'docs\ExchangeMailboxMigration-Guide.html',
+    'README.md', '..\CHANGELOG.md', 'LICENSE'
 foreach ($f in $files) {
     $source = Join-Path $root $f
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing file in the tool folder: $f" }
