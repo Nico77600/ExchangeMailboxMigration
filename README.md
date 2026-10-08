@@ -13,7 +13,7 @@ Moves the mailboxes of an **Exchange Server** organisation from source databases
 >
 > The `Install-Module` commands in this documentation use `-Force`, so they also update or reinstall a module that is already installed. If an older version still conflicts, close every PowerShell window, open a new one (as administrator for `-Scope AllUsers`), run `Uninstall-Module <ModuleName> -AllVersions -Force`, then run the `Install-Module` command again.
 
-![Plan report](docs/images/report-plan.png)
+![Plan report](package/docs/images/report-plan.png)
 
 ## Why
 
@@ -32,7 +32,7 @@ Inventory ──► Plan ──► Start ──► Status ──► Complete ─
 - **Safe by design**: pre-flight against the live organisation before any start, confirmation before every change, `-WhatIf` simulation, never touches batches or move requests of other tools, never removes a batch whose moves are not completed, never moves a monitoring mailbox.
 - **Reports**: self-contained HTML (filters, details, export) and CSV for every execution; every change command in the log.
 
-![Console](docs/images/console-start.png)
+![Console](package/docs/images/console-start.png)
 
 ## Requirements
 
@@ -47,7 +47,7 @@ Inventory ──► Plan ──► Start ──► Status ──► Complete ─
 
 ```powershell
 git clone https://github.com/Nico77600/ExchangeMailboxMigration.git
-cd ExchangeMailboxMigration
+cd ExchangeMailboxMigration\package
 notepad .\config\ExchangeMailboxMigration.config.psd1      # Databases: source and target patterns
 
 .\Invoke-ExchangeMailboxMigration.ps1                                   # inventory: changes nothing
@@ -61,14 +61,14 @@ notepad .\config\ExchangeMailboxMigration.config.psd1      # Databases: source a
 .\Invoke-ExchangeMailboxMigration.ps1 -Mode Cleanup
 ```
 
-`.\tools\New-EmmPackage.ps1` copies only the files needed to run into `..\package\ExchangeMailboxMigration-<version>`, ready to be zipped and copied to an Exchange server.
+The `package` folder of the repository holds exactly the files needed to run, with the guide: copy it to an Exchange server. The zip of each [release](https://github.com/Nico77600/ExchangeMailboxMigration/releases) contains the same run-time files with the HTML guide; `.\tools\New-EmmPackage.ps1` builds that zip content from the repository.
 
 ## Documentation
 
 The **administrator guide** covers the concepts, installation, configuration, every step with screenshots, recipes, the reports, troubleshooting and the internals:
 
-- [docs/ExchangeMailboxMigration-Guide.md](docs/ExchangeMailboxMigration-Guide.md)
-- `docs/ExchangeMailboxMigration-Guide.html` — the same guide as a single HTML file (download it and open it locally)
+- [package/docs/ExchangeMailboxMigration-Guide.md](package/docs/ExchangeMailboxMigration-Guide.md)
+- `package/docs/ExchangeMailboxMigration-Guide.html` — the same guide as a single HTML file (download it and open it locally)
 
 ## Tests
 

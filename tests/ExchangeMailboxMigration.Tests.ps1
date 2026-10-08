@@ -16,7 +16,8 @@
 #>
 
 BeforeAll {
-    $script:Root = Split-Path $PSScriptRoot -Parent
+    $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+    $script:Root = Join-Path $script:RepoRoot 'package'
     Import-Module (Join-Path $script:Root 'ExchangeMailboxMigration.psd1') -Force
     . (Join-Path $PSScriptRoot 'FakeExchange.ps1')
     $script:Temp = Join-Path ([IO.Path]::GetTempPath()) ('EmmTests-' + [guid]::NewGuid().ToString('N'))
@@ -491,13 +492,13 @@ Describe 'Reports' {
 
 Describe 'Code' {
     It 'every PowerShell file parses' {
-        foreach ($f in Get-ChildItem $script:Root -Recurse -Include *.ps1, *.psm1, *.psd1) {
+        foreach ($f in Get-ChildItem (Join-Path $script:RepoRoot 'package'), (Join-Path $script:RepoRoot 'tests'), (Join-Path $script:RepoRoot 'tools') -Recurse -Include *.ps1, *.psm1, *.psd1) {
             $errors = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errors)
             @($errors).Count | Should -Be 0 -Because $f.Name
         }
     }
     It 'code files are ASCII or start with a BOM (Windows PowerShell 5.1 reads them correctly)' {
-        foreach ($f in Get-ChildItem $script:Root -Recurse -Include *.ps1, *.psm1, *.psd1) {
+        foreach ($f in Get-ChildItem (Join-Path $script:RepoRoot 'package'), (Join-Path $script:RepoRoot 'tests'), (Join-Path $script:RepoRoot 'tools') -Recurse -Include *.ps1, *.psm1, *.psd1) {
             $bytes = [IO.File]::ReadAllBytes($f.FullName)
             $bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
             ($bom -or -not @($bytes | Where-Object { $_ -gt 127 }).Count) | Should -BeTrue -Because $f.Name
@@ -521,8 +522,9 @@ Describe 'Code' {
         $manifest = Import-PowerShellDataFile (Join-Path $script:Root 'ExchangeMailboxMigration.psd1')
         @($manifest.CompatiblePSEditions) | Should -Be @('Desktop')
         $manifest.PowerShellVersion | Should -Be '5.1'
-        foreach ($f in 'ExchangeMailboxMigration.psm1', 'Invoke-ExchangeMailboxMigration.ps1', 'tests\Invoke-EndToEnd.ps1') {
+        foreach ($f in 'ExchangeMailboxMigration.psm1', 'Invoke-ExchangeMailboxMigration.ps1') {
             [IO.File]::ReadAllText((Join-Path $script:Root $f)) | Should -Match "PSEdition -ne 'Desktop'" -Because $f
         }
+        [IO.File]::ReadAllText((Join-Path $script:RepoRoot 'tests\Invoke-EndToEnd.ps1')) | Should -Match "PSEdition -ne 'Desktop'" -Because 'tests\Invoke-EndToEnd.ps1'
     }
 }

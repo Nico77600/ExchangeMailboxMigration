@@ -6,15 +6,15 @@
 
 .DESCRIPTION
     The package contains only what Invoke-ExchangeMailboxMigration.ps1 needs at run time, plus the HTML guide:
-        Invoke-ExchangeMailboxMigration.ps1, ExchangeMailboxMigration.psd1, ExchangeMailboxMigration.psm1,
-        config\, templates\, docs\ExchangeMailboxMigration-Guide.html, README.md, CHANGELOG.md, LICENSE
+        package\Invoke-ExchangeMailboxMigration.ps1, package\ExchangeMailboxMigration.psd1, package\ExchangeMailboxMigration.psm1,
+        package\config\, package\templates\, package\docs\ExchangeMailboxMigration-Guide.html, package\README.md, CHANGELOG.md, package\LICENSE
     It never copies reports\, logs\ or tests\.
 
     -ConfigPath replaces the delivered configuration file by the configuration of an organisation (for
     example a copy kept outside the repository), so the package is ready for that organisation.
 
 .PARAMETER Destination
-    Package folder. Default: package\ExchangeMailboxMigration-<version>, next to the tool folder.
+    Package folder. Default: package\ExchangeMailboxMigration-<version>, next to the repository folder.
 
 .PARAMETER ConfigPath
     Configuration file to put in the package instead of the delivered one. It is checked first.
@@ -45,15 +45,16 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path $PSScriptRoot -Parent
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$root = Join-Path $repoRoot 'package'
 $version = (Import-PowerShellDataFile (Join-Path $root 'ExchangeMailboxMigration.psd1')).ModuleVersion
-if (-not $Destination) { $Destination = Join-Path (Split-Path $root -Parent) "package\ExchangeMailboxMigration-$version" }
+if (-not $Destination) { $Destination = Join-Path (Split-Path $repoRoot -Parent) "package\ExchangeMailboxMigration-$version" }
 if (-not [IO.Path]::IsPathRooted($Destination)) { $Destination = Join-Path (Get-Location).Path $Destination }
 $Destination = [IO.Path]::GetFullPath($Destination).TrimEnd('\')
 
-$rootPrefix = [IO.Path]::GetFullPath($root).TrimEnd('\') + '\'
+$rootPrefix = [IO.Path]::GetFullPath($repoRoot).TrimEnd('\') + '\'
 if (($Destination + '\').StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase) -or $rootPrefix.StartsWith($Destination + '\', [StringComparison]::OrdinalIgnoreCase)) {
-    throw "The destination must be outside the tool folder: $Destination"
+    throw "The destination must be outside the repository folder: $Destination"
 }
 if (Test-Path -LiteralPath $Destination) {
     if (-not $Force) { throw "The destination already exists: $Destination. Use -Force to replace it." }
@@ -64,11 +65,13 @@ if (Test-Path -LiteralPath $Destination) {
 
 # ---- Files needed at run time ---------------------------------------------------------------------------
 $files = 'Invoke-ExchangeMailboxMigration.ps1', 'ExchangeMailboxMigration.psd1', 'ExchangeMailboxMigration.psm1', 'templates\Report.template.html',
-    'config\ExchangeMailboxMigration.config.psd1', 'docs\ExchangeMailboxMigration-Guide.html', 'README.md', 'CHANGELOG.md', 'LICENSE'
+    'config\ExchangeMailboxMigration.config.psd1', 'docs\ExchangeMailboxMigration-Guide.html', 'README.md', '..\CHANGELOG.md', 'LICENSE'
 foreach ($f in $files) {
     $source = Join-Path $root $f
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing file in the tool folder: $f" }
-    $target = Join-Path $Destination $f
+    $targetName = Split-Path $f -Leaf
+    $targetRelative = if ($f -like '..\*') { $targetName } else { $f }
+    $target = Join-Path $Destination $targetRelative
     [void][IO.Directory]::CreateDirectory((Split-Path $target -Parent))
     Copy-Item -LiteralPath $source -Destination $target
 }

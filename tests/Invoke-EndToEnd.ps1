@@ -31,7 +31,8 @@ param([string]$OutputPath, [switch]$KeepOutput, [switch]$ShowOutput)
 
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'The end-to-end tests run in Windows PowerShell 5.1 only (powershell.exe), like the tool.' }
-$root = Split-Path $PSScriptRoot -Parent
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$root = Join-Path $repoRoot 'package'
 $entry = Join-Path $root 'Invoke-ExchangeMailboxMigration.ps1'
 . (Join-Path $PSScriptRoot 'FakeExchange.ps1')
 if (-not $OutputPath) { $OutputPath = Join-Path ([IO.Path]::GetTempPath()) ('EmmEndToEnd-' + [guid]::NewGuid().ToString('N')) } else { $KeepOutput = $true }

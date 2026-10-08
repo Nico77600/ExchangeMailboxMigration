@@ -500,8 +500,8 @@ chart | Report | HTML + CSV + log
 | | Region 6 · Migration actions | `Get-EmmStartPreflight`, `Start-EmmMigration`, `Complete-EmmBatch`, `Get-EmmCleanupPlan`, `Invoke-EmmCleanup` |
 | | Region 7 · Status | `Get-EmmStatus` (move requests + migration users) |
 | | Region 8 · Reports | JSON writer, CSV writer, `New-EmmReport` |
-| `templates\Report.template.html` | — | The HTML page of every report. The marker `%%DATA%%` receives the data as JSON. |
-| `config\…config.psd1` | — | Example configuration |
+| `package\templates\Report.template.html` | — | The HTML page of every report. The marker `%%DATA%%` receives the data as JSON. |
+| `package\config\…config.psd1` | — | Example configuration |
 | `tests\FakeExchange.ps1` | — | Fictitious organisation with the Exchange cmdlets in memory (tests, demonstrations, screenshots) |
 | `tools\` | — | `New-EmmPackage.ps1` (delivery), `Build-Documentation.ps1` (this guide in HTML) |
 
@@ -519,10 +519,10 @@ chart | Report | HTML + CSV + log
 | Change target or batch choice | `New-EmmPlan` (`Select-EmmTargetDatabase`, Balanced block) |
 | Add a pre-flight check | `Get-EmmStartPreflight`: set `Decision`, `Status`, `Reason` |
 | Add a column to a report | the object built in the module (property order = column order), then `columns` of the kind in the template |
-| Change the look of the reports | `templates\Report.template.html` only (no rebuild) |
+| Change the look of the reports | `package\templates\Report.template.html` only (no rebuild) |
 | Change the console output | always through `Write-EmmStep`, `Write-EmmItem`, `Write-EmmTable`, `Write-EmmSummary`: they also write the log |
 | Run an Exchange command that changes something | always through `Invoke-EmmChange` (log + `-WhatIf`) and record the result with `Add-EmmAction` |
-| Change this guide | `docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1` (PowerShell 7.4+, workstation only) |
+| Change this guide | `package\docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1` (PowerShell 7.4+, workstation only) |
 
 ### PowerShell pitfalls met during the build
 
@@ -685,7 +685,7 @@ Versions follow MAJOR.MINOR.PATCH: MAJOR for a change of behaviour or of the con
 Version | Same number in `ExchangeMailboxMigration.psd1` (`ModuleVersion`), the headers of the `.psm1`, the script, the configuration, the template, the tools and the guide front matter. A test checks the main ones.
 Changelog | `CHANGELOG.md`: Added / Changed / Fixed, with the reason.
 Tests | Pester and `Invoke-EndToEnd.ps1` in Windows PowerShell 5.1 (`powershell.exe`).
-Guide | `docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1`. Screenshots from the fictitious organisation only.
+Guide | `package\docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1`. Screenshots from the fictitious organisation only.
 Package | `.\tools\New-EmmPackage.ps1`, zip, test on a lab.
 Publish | Commit, tag `vX.Y.Z`, push; GitHub release with the zip of the package.
 ```

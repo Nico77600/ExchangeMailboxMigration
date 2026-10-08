@@ -1029,12 +1029,12 @@ notepad .\config\ExchangeMailboxMigration.config.psd1                   # the Da
 <td>JSON writer, CSV writer, <code>New-EmmReport</code></td>
 </tr>
 <tr>
-<td><code>templates\Report.template.html</code></td>
+<td><code>package\templates\Report.template.html</code></td>
 <td>—</td>
 <td>The HTML page of every report. The marker <code>%%DATA%%</code> receives the data as JSON.</td>
 </tr>
 <tr>
-<td><code>config\…config.psd1</code></td>
+<td><code>package\config\…config.psd1</code></td>
 <td>—</td>
 <td>Example configuration</td>
 </tr>
@@ -1089,7 +1089,7 @@ notepad .\config\ExchangeMailboxMigration.config.psd1                   # the Da
 </tr>
 <tr>
 <td>Change the look of the reports</td>
-<td><code>templates\Report.template.html</code> only (no rebuild)</td>
+<td><code>package\templates\Report.template.html</code> only (no rebuild)</td>
 </tr>
 <tr>
 <td>Change the console output</td>
@@ -1101,7 +1101,7 @@ notepad .\config\ExchangeMailboxMigration.config.psd1                   # the Da
 </tr>
 <tr>
 <td>Change this guide</td>
-<td><code>docs\ExchangeMailboxMigration-Guide.md</code>, then <code>.\tools\Build-Documentation.ps1</code> (PowerShell 7.4+, workstation only)</td>
+<td><code>package\docs\ExchangeMailboxMigration-Guide.md</code>, then <code>.\tools\Build-Documentation.ps1</code> (PowerShell 7.4+, workstation only)</td>
 </tr>
 </tbody>
 </table></div>
@@ -1458,13 +1458,13 @@ powershell.exe -NoProfile -File .\tests\Invoke-EndToEnd.ps1
 </table></div>
 </div></section><section class="section" id="annex-d-versioning-and-release-checklist"><div class="section-head"><div class="section-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg></div><div><div class="section-eyebrow">Annex D</div><h2>Versioning and release checklist</h2></div></div><div class="section-body">
 <p>Versions follow MAJOR.MINOR.PATCH: MAJOR for a change of behaviour or of the configuration format, MINOR for a feature, PATCH for a fix.</p>
-<ol class="steps"><li><span class="step-num">1</span><div class="step-body"><div class="step-title">Version</div><div class="step-text">Same number in <code>ExchangeMailboxMigration.psd1</code> (<code>ModuleVersion</code>), the headers of the <code>.psm1</code>, the script, the configuration, the template, the tools and the guide front matter. A test checks the main ones.</div></div></li><li><span class="step-num">2</span><div class="step-body"><div class="step-title">Changelog</div><div class="step-text"><code>CHANGELOG.md</code>: Added / Changed / Fixed, with the reason.</div></div></li><li><span class="step-num">3</span><div class="step-body"><div class="step-title">Tests</div><div class="step-text">Pester and <code>Invoke-EndToEnd.ps1</code> in Windows PowerShell 5.1 (<code>powershell.exe</code>).</div></div></li><li><span class="step-num">4</span><div class="step-body"><div class="step-title">Guide</div><div class="step-text"><code>docs\ExchangeMailboxMigration-Guide.md</code>, then <code>.\tools\Build-Documentation.ps1</code>. Screenshots from the fictitious organisation only.</div></div></li><li><span class="step-num">5</span><div class="step-body"><div class="step-title">Package</div><div class="step-text"><code>.\tools\New-EmmPackage.ps1</code>, zip, test on a lab.</div></div></li><li><span class="step-num">6</span><div class="step-body"><div class="step-title">Publish</div><div class="step-text">Commit, tag <code>vX.Y.Z</code>, push; GitHub release with the zip of the package.</div></div></li></ol>
+<ol class="steps"><li><span class="step-num">1</span><div class="step-body"><div class="step-title">Version</div><div class="step-text">Same number in <code>ExchangeMailboxMigration.psd1</code> (<code>ModuleVersion</code>), the headers of the <code>.psm1</code>, the script, the configuration, the template, the tools and the guide front matter. A test checks the main ones.</div></div></li><li><span class="step-num">2</span><div class="step-body"><div class="step-title">Changelog</div><div class="step-text"><code>CHANGELOG.md</code>: Added / Changed / Fixed, with the reason.</div></div></li><li><span class="step-num">3</span><div class="step-body"><div class="step-title">Tests</div><div class="step-text">Pester and <code>Invoke-EndToEnd.ps1</code> in Windows PowerShell 5.1 (<code>powershell.exe</code>).</div></div></li><li><span class="step-num">4</span><div class="step-body"><div class="step-title">Guide</div><div class="step-text"><code>package\docs\ExchangeMailboxMigration-Guide.md</code>, then <code>.\tools\Build-Documentation.ps1</code>. Screenshots from the fictitious organisation only.</div></div></li><li><span class="step-num">5</span><div class="step-body"><div class="step-title">Package</div><div class="step-text"><code>.\tools\New-EmmPackage.ps1</code>, zip, test on a lab.</div></div></li><li><span class="step-num">6</span><div class="step-body"><div class="step-title">Publish</div><div class="step-text">Commit, tag <code>vX.Y.Z</code>, push; GitHub release with the zip of the package.</div></div></li></ol>
 <div class="markdown-alert markdown-alert-warning">
 <p class="markdown-alert-title"><svg class="icon-sm" viewBox="0 0 16 16" fill="currentColor" version="1.1" width="16" height="16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg>Warning</p>
 <p><strong>Before publishing</strong>: the repository holds only fictitious data (contoso.com) and the example configuration. Never commit a real configuration, reports, plans or logs (they contain mailbox names and addresses): <code>.gitignore</code> excludes <code>reports\</code> and <code>logs\</code>; keep organisation configurations outside the repository (<code>New-EmmPackage.ps1 -ConfigPath</code>).</p>
 </div>
 </div></section>
-<footer>Exchange Mailbox Migration 2.0.0 · Nicolas Fabert · generated 2026-10-02 16:16 from ExchangeMailboxMigration-Guide.md</footer></main>
+<footer>Exchange Mailbox Migration 2.0.0 · Nicolas Fabert · generated 2026-10-08 08:29 from ExchangeMailboxMigration-Guide.md</footer></main>
 <button type="button" id="to-top" title="Back to top"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
 <dialog id="zoom"><img alt=""></dialog>
 <script>
