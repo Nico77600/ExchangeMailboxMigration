@@ -2,7 +2,7 @@
 
 Moves the mailboxes of an Exchange Server organisation from source databases to target databases with migration batches, with system and user mailboxes kept apart and monitoring mailboxes never moved.
 
-This folder contains everything needed to run the tool: Invoke-ExchangeMailboxMigration.ps1, the module, the configuration, the report template and the guide. Tests and build tools stay outside it, in the repository.
+This folder contains everything needed to run the tool: Invoke-ExchangeMailboxMigration.ps1, the module, the configuration, the report template and the guides. Tests and build tools stay outside it, in the repository.
 
 > [!IMPORTANT]
 > Files downloaded from the Internet may be blocked by Windows. Unblock them once, from this folder:
@@ -36,7 +36,7 @@ notepad .\config\ExchangeMailboxMigration.config.psd1      # Databases: source a
 | Item | Role |
 |---|---|
 | `config\` | Example configuration file. |
-| `docs\` | Administrator guide in Markdown and HTML, with images. |
+| `docs\` | User guide and developer guide, in Markdown and HTML, with images. |
 | `templates\` | HTML report template. |
 | `ExchangeMailboxMigration.psd1` | PowerShell module manifest. |
 | `ExchangeMailboxMigration.psm1` | PowerShell module with the migration functions. |
@@ -45,7 +45,8 @@ notepad .\config\ExchangeMailboxMigration.config.psd1      # Databases: source a
 | `README.md` | This package quick start. |
 
 ## Documentation
-- [Guide](docs/ExchangeMailboxMigration-Guide.md) - also `docs/ExchangeMailboxMigration-Guide.html`, a single file to open locally
+- [User guide](docs/ExchangeMailboxMigration-UserGuide.md) - the path step by step, also `docs/ExchangeMailboxMigration-UserGuide.html`, a single file to open locally
+- [Developer guide](docs/ExchangeMailboxMigration-Guide.md) - everything else, also `docs/ExchangeMailboxMigration-Guide.html`, a single file to open locally
 
 Project page, releases and change log: https://github.com/Nico77600/ExchangeMailboxMigration
 

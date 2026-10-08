@@ -1,16 +1,16 @@
 ---
 title: Exchange Mailbox Migration
-subtitle: Administrator guide
+subtitle: Developer guide
 version: 2.0.0
 author: Nicolas Fabert
-updated: 2026-10-02
+updated: 2026-10-08
 logo: mail
 badges: terminal:Windows PowerShell 5.1 only | database:Exchange Server 2016 / 2019 / SE | shield:Monitoring mailboxes never moved
 ---
 
-# Exchange Mailbox Migration — Administrator guide
+# Exchange Mailbox Migration — Developer guide
 
-> Moves the mailboxes of an Exchange Server organisation **from source databases to target databases** with migration batches, **system and user mailboxes kept apart**, monitoring mailboxes never moved, with an HTML and CSV report at every step.
+> Moves the mailboxes of an Exchange Server organisation **from source databases to target databases** with migration batches, **system and user mailboxes kept apart**, monitoring mailboxes never moved, with an HTML and CSV report at every step. The commands an operator runs, step by step, are in the [user guide](ExchangeMailboxMigration-UserGuide.md); this guide covers the concepts, the configuration, the reports and the internals.
 
 > [!IMPORTANT]
 > Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
@@ -503,7 +503,7 @@ chart | Report | HTML + CSV + log
 | `package\templates\Report.template.html` | — | The HTML page of every report. The marker `%%DATA%%` receives the data as JSON. |
 | `package\config\…config.psd1` | — | Example configuration |
 | `tests\FakeExchange.ps1` | — | Fictitious organisation with the Exchange cmdlets in memory (tests, demonstrations, screenshots) |
-| `tools\` | — | `New-EmmPackage.ps1` (delivery), `Build-Documentation.ps1` (this guide in HTML) |
+| `tools\` | — | `New-EmmPackage.ps1` (delivery), `Build-Documentation.ps1` (both guides in HTML), `New-ReadmeImages.ps1` (the graphics of the README) |
 
 <!-- icon: wrench -->
 ## 13. Modifying the tool
@@ -522,7 +522,7 @@ chart | Report | HTML + CSV + log
 | Change the look of the reports | `package\templates\Report.template.html` only (no rebuild) |
 | Change the console output | always through `Write-EmmStep`, `Write-EmmItem`, `Write-EmmTable`, `Write-EmmSummary`: they also write the log |
 | Run an Exchange command that changes something | always through `Invoke-EmmChange` (log + `-WhatIf`) and record the result with `Add-EmmAction` |
-| Change this guide | `package\docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1` (PowerShell 7.4+, workstation only) |
+| Change a guide | `package\docs\ExchangeMailboxMigration-Guide.md` (this one) or `package\docs\ExchangeMailboxMigration-UserGuide.md`, then `.\tools\Build-Documentation.ps1`, which rebuilds both (PowerShell 7.4+, workstation only) |
 
 ### PowerShell pitfalls met during the build
 
@@ -685,7 +685,7 @@ Versions follow MAJOR.MINOR.PATCH: MAJOR for a change of behaviour or of the con
 Version | Same number in `ExchangeMailboxMigration.psd1` (`ModuleVersion`), the headers of the `.psm1`, the script, the configuration, the template, the tools and the guide front matter. A test checks the main ones.
 Changelog | `CHANGELOG.md`: Added / Changed / Fixed, with the reason.
 Tests | Pester and `Invoke-EndToEnd.ps1` in Windows PowerShell 5.1 (`powershell.exe`).
-Guide | `package\docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1`. Screenshots from the fictitious organisation only.
+Guides | `package\docs\ExchangeMailboxMigration-UserGuide.md` and `package\docs\ExchangeMailboxMigration-Guide.md`, then `.\tools\Build-Documentation.ps1` (both). Screenshots from the fictitious organisation only.
 Package | `.\tools\New-EmmPackage.ps1`, zip, test on a lab.
 Publish | Commit, tag `vX.Y.Z`, push; GitHub release with the zip of the package.
 ```
