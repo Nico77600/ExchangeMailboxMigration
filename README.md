@@ -118,4 +118,9 @@ The tests run against `tests\FakeExchange.ps1`, a fictitious organisation (conto
 
 ## Disclaimer
 
-Personal project, provided as is. It is not an official Microsoft product and is not supported by Microsoft. Mailbox moves change production data: run the inventory, review the plan, simulate with `-WhatIf` and test in a lab before production use.
+This Script is a Personal project.
+It's provided "AS-IS". It's not an official Microsoft product so no support can be expected from Microsoft.
+
+As any scripts you must read carefully the documentation and test it first in a Test environment before any run in Production.
+
+Mailbox moves change production data: run the inventory, review the plan, simulate with `-WhatIf` and test in a lab before production use.

@@ -1,0 +1,10 @@
+{
+  "runtimeRoot": "package",
+  "testMode": "pester",
+  "testEntry": null,
+  "tests": [
+    "tests/ExchangeMailboxMigration.Tests.ps1"
+  ],
+  "packageBuilder": "tools/New-EmmPackage.ps1",
+  "packageEntry": "Invoke-ExchangeMailboxMigration.ps1"
+}
