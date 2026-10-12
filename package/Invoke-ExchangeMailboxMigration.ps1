@@ -1,4 +1,5 @@
 #Requires -Version 5.1
+
 <#
 .SYNOPSIS
     Exchange Mailbox Migration - moves Exchange Server mailboxes from source databases to target
@@ -114,6 +115,14 @@
                  (batches kept on purpose are listed but do not change the code), 3 = cancelled at the
                  confirmation question (nothing changed).
     Documentation : docs\ExchangeMailboxMigration-Guide.md (or .html)
+
+    Disclaimer:
+    This Script is a Personal project.
+    It's provided "AS-IS". It's not an official Microsoft product so no support can be expected from Microsoft.
+
+    As any scripts you must read carefully the documentation and test it first in a Test environment before any run in Production.
+
+    Mailbox moves change production data: run the inventory, review the plan, simulate with `-WhatIf` and test in a lab before production use.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
