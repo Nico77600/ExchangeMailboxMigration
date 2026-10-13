@@ -26,7 +26,7 @@
 
 .EXAMPLE
     .\tools\New-EmmPackage.ps1
-    Creates ..\package\ExchangeMailboxMigration-2.0.0.
+    Creates ..\package\ExchangeMailboxMigration-2.0.1.
 
 .EXAMPLE
     .\tools\New-EmmPackage.ps1 -ConfigPath D:\Private\contoso.config.psd1 -Force
@@ -34,7 +34,7 @@
 
 .NOTES
     Author  : Nicolas Fabert
-    Version : 2.0.0
+    Version : 2.0.1
     Run it in Windows PowerShell 5.1, like the tool: -ConfigPath checks the configuration with the module,
     which refuses PowerShell 7.
 #>

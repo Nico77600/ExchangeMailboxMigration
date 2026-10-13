@@ -3,6 +3,10 @@
 All notable changes are listed here. Versions follow MAJOR.MINOR.PATCH (see the guide, Annex D).
 Author: Nicolas Fabert.
 
+## [2.0.1] — 2026-10-13
+
+Release-integrity update with no functional change. The three runtime PowerShell files are Authenticode-signed with the owner's SHA256 code-signing certificate before packaging.
+
 ## [2.0.0] — 2026-10-01
 
 First public release. Rewrite of the internal script `Migrate-ExchangeBals` 1.3/1.4 (steps 18 to 22 of an Exchange 2019 deployment framework), aligned with the standards of the author's other tools.

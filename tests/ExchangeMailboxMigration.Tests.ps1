@@ -4,7 +4,7 @@
 <#
     Exchange Mailbox Migration - automated tests (Pester 5 or later).
     Author  : Nicolas Fabert
-    Version : 2.0.0
+    Version : 2.0.1
 
     Windows PowerShell 5.1 only, like the tool. Windows ships Pester 3.4: install Pester 5+ first
     (Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck), then, in powershell.exe:
