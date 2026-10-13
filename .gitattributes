@@ -1,2 +1,7 @@
 # Language statistics: the guides are documentation, not code.
 package/docs/** linguist-documentation
+
+# Authenticode authenticates exact bytes, including signature-block line endings.
+package/Invoke-ExchangeMailboxMigration.ps1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package/ExchangeMailboxMigration.psm1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+package/ExchangeMailboxMigration.psd1 -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
