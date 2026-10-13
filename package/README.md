@@ -48,6 +48,14 @@ notepad .\config\ExchangeMailboxMigration.config.psd1      # Databases: source a
 - [User guide](docs/ExchangeMailboxMigration-UserGuide.md) - the path step by step, also `docs/ExchangeMailboxMigration-UserGuide.html`, a single file to open locally
 - [Developer guide](docs/ExchangeMailboxMigration-Guide.md) - everything else, also `docs/ExchangeMailboxMigration-Guide.html`, a single file to open locally
 
+## Release integrity
+
+Download releases only from the official project page. The `main` branch is protected by pull requests and the required Windows PowerShell 5.1 validation, and published `v*` tags cannot be changed or deleted.
+
+The project publishes GitHub artifact attestations for release ZIP assets with [the attestation workflow](https://github.com/Nico77600/ExchangeMailboxMigration/blob/main/.github/workflows/attest-release.yml). An attestation binds the exact distributed ZIP bytes to this repository and workflow; it is not an Authenticode signature.
+
+The `v2.0.0` tag and ZIP are already published and immutable. A future ZIP with Authenticode-signed runtime scripts must use a new version rather than replacing this release.
+
 Project page, releases and change log: https://github.com/Nico77600/ExchangeMailboxMigration
 
 License: [MIT](LICENSE).

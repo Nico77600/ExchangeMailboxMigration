@@ -102,6 +102,14 @@ The `package` folder of the repository holds exactly the files needed to run, wi
 
 Both guides also exist as a single HTML file with a light and a dark theme (`package/docs/ExchangeMailboxMigration-UserGuide.html`, `package/docs/ExchangeMailboxMigration-Guide.html`): download them and open them locally, or use the copies in the release zip.
 
+## Release integrity
+
+The public repository protects `main` with pull requests, the required Windows PowerShell 5.1 validation, and no deletion or non-fast-forward updates. Published `v*` tags are also protected against updates and deletion.
+
+The workflow [.github/workflows/attest-release.yml](.github/workflows/attest-release.yml) creates a GitHub artifact attestation for the exact ZIP assets of a published release. It can be run manually from `main` with an explicit tag for an existing release. This attestation binds the distributed ZIP bytes to this repository and workflow; it is not an Authenticode signature and does not replace source review or the existing tests.
+
+`v2.0.0` and its ZIP are already published and immutable. This version is not replaced or retagged. A future release containing Authenticode-signed runtime scripts must use a new version and a new `v*` tag.
+
 ## Tests
 
 ```powershell
