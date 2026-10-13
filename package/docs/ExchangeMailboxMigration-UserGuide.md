@@ -1,7 +1,7 @@
 ---
 title: Exchange Mailbox Migration
 subtitle: User guide
-version: 2.0.0
+version: 2.0.1
 author: Nicolas Fabert
 updated: 2026-10-08
 logo: mail
@@ -53,7 +53,7 @@ Also before data moves: the target databases must hold the volume planned (Plan 
 ## 2. Install and configure
 
 ```steps
-Build the package | On your workstation, from the repository: `.\tools\New-EmmPackage.ps1`. It writes `..\package\ExchangeMailboxMigration-2.0.0` with only the files needed to run.
+Build the package | On your workstation, from the repository: `.\tools\New-EmmPackage.ps1`. It writes `..\package\ExchangeMailboxMigration-2.0.1` with only the files needed to run.
 Copy it to a server | Zip that folder, copy it to the Exchange server, extract it, then unblock the files.
 Describe your databases | In `config\ExchangeMailboxMigration.config.psd1`, section `Databases`: which databases are emptied, which are filled.
 Look before moving | `.\Invoke-ExchangeMailboxMigration.ps1` — the inventory changes nothing and shows how every database and every mailbox is classified.
@@ -62,10 +62,10 @@ Look before moving | `.\Invoke-ExchangeMailboxMigration.ps1` — the inventory c
 ```powershell
 # On the admin workstation: build the package (only the files needed to run)
 .\tools\New-EmmPackage.ps1
-# -> ..\package\ExchangeMailboxMigration-2.0.0 : zip it and copy it to the Exchange server
+# -> ..\package\ExchangeMailboxMigration-2.0.1 : zip it and copy it to the Exchange server
 
 # On the Exchange server
-Expand-Archive .\ExchangeMailboxMigration-2.0.0.zip -DestinationPath D:\Tools\ExchangeMailboxMigration
+Expand-Archive .\ExchangeMailboxMigration-2.0.1.zip -DestinationPath D:\Tools\ExchangeMailboxMigration
 Get-ChildItem D:\Tools\ExchangeMailboxMigration -Recurse -File -Force | Unblock-File   # files downloaded from the internet
 cd D:\Tools\ExchangeMailboxMigration
 notepad .\config\ExchangeMailboxMigration.config.psd1                   # the Databases section at least

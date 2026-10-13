@@ -2,7 +2,7 @@
 #  Exchange Mailbox Migration - configuration file
 #  --------------------------------------------------------------------------
 #  Author  : Nicolas Fabert
-#  Version : 2.0.0
+#  Version : 2.0.1
 #
 #  This file is read by Invoke-ExchangeMailboxMigration.ps1. It is a PowerShell
 #  data file: text between quotes, $true / $false, numbers, @( ) for lists and

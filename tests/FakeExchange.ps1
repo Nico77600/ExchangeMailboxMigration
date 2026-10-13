@@ -1,7 +1,7 @@
 <#
     Exchange Mailbox Migration - fake Exchange organisation for tests and demonstrations.
     Author  : Nicolas Fabert
-    Version : 2.0.0
+    Version : 2.0.1
 
     Defines, in the global scope, the Exchange cmdlets used by the tool (Get-Mailbox, New-MigrationBatch,
     Get-MoveRequestStatistics...) over an in-memory organisation. The objects look like those of remote

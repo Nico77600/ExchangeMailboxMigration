@@ -1,7 +1,7 @@
 ---
 title: Exchange Mailbox Migration
 subtitle: Developer guide
-version: 2.0.0
+version: 2.0.1
 author: Nicolas Fabert
 updated: 2026-10-08
 logo: mail
@@ -190,10 +190,10 @@ The account needs the Exchange RBAC roles:
 ```powershell
 # On the admin workstation: build the package (only the files needed to run)
 .\tools\New-EmmPackage.ps1
-# -> ..\package\ExchangeMailboxMigration-2.0.0 : zip it and copy it to the Exchange server
+# -> ..\package\ExchangeMailboxMigration-2.0.1 : zip it and copy it to the Exchange server
 
 # On the Exchange server
-Expand-Archive .\ExchangeMailboxMigration-2.0.0.zip -DestinationPath D:\Tools\ExchangeMailboxMigration
+Expand-Archive .\ExchangeMailboxMigration-2.0.1.zip -DestinationPath D:\Tools\ExchangeMailboxMigration
 Get-ChildItem D:\Tools\ExchangeMailboxMigration -Recurse -File -Force | Unblock-File   # files downloaded from the internet
 cd D:\Tools\ExchangeMailboxMigration
 notepad .\config\ExchangeMailboxMigration.config.psd1                   # the Databases section at least
