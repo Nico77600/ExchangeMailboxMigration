@@ -5,11 +5,13 @@ Moves the mailboxes of an Exchange Server organisation from source databases to 
 This folder contains everything needed to run the tool: Invoke-ExchangeMailboxMigration.ps1, the module, the configuration, the report template and the guides. Tests and build tools stay outside it, in the repository.
 
 > [!IMPORTANT]
-> Files downloaded from the Internet may be blocked by Windows. Unblock them once, from this folder:
+> Files downloaded from the Internet may be blocked by Windows. First verify the official source and any available owner code signature or artifact attestation. Then unblock only this project folder:
 >
 > ```powershell
 > Get-ChildItem . -Recurse -File | Unblock-File
 > ```
+>
+> Do not unblock files whose source or integrity you cannot verify.
 
 ## Requirements
 - Exchange Server 2019 / Subscription Edition; Exchange 2016 uses the same cmdlets.
@@ -50,7 +52,7 @@ notepad .\config\ExchangeMailboxMigration.config.psd1      # Databases: source a
 
 Project page, releases and change log: https://github.com/Nico77600/ExchangeMailboxMigration
 
-License: [MIT](LICENSE).
+License: [MIT](LICENSE). Author: Nicolas Fabert.
 
 ## Disclaimer
 

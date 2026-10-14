@@ -15,13 +15,13 @@
 </p>
 
 > [!IMPORTANT]
-> Files downloaded from the Internet may be blocked by Windows and fail to run. Before using this project, unblock every file in the downloaded folder:
+> Files downloaded from the Internet may be blocked by Windows and fail to run. First verify the official source and any available owner code signature or artifact attestation (see [SECURITY.md](SECURITY.md)); then unblock only the downloaded project folder:
 >
 > ```powershell
 > Get-ChildItem "C:\Chemin\Du\Dossier" -Recurse -File -Force | Unblock-File
 > ```
 >
-> Replace the example path with the folder where you downloaded or extracted this project.
+> Replace the example path with the folder where you downloaded or extracted this project. Do not unblock files whose source or integrity you cannot verify.
 >
 > The `Install-Module` commands in this documentation use `-Force`, so they also update or reinstall a module that is already installed. If an older version still conflicts, close every PowerShell window, open a new one (as administrator for `-Scope AllUsers`), run `Uninstall-Module <ModuleName> -AllVersions -Force`, then run the `Install-Module` command again.
 
@@ -114,7 +114,7 @@ The tests run against `tests\FakeExchange.ps1`, a fictitious organisation (conto
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Author: Nicolas Fabert.
 
 ## Disclaimer
 
